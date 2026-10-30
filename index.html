@@ -53,7 +53,8 @@ layout: null
 
 <link rel="icon" href="{{ '/assets/favicon.png' | relative_url }}" type="image/png">
 <link rel="apple-touch-icon" href="{{ '/assets/favicon.png' | relative_url }}">
-<link rel="preload" as="image" href="{{ back_url }}">
+{%- if back_url != "" %}
+<link rel="preload" as="image" href="{{ back_url }}">{% endif %}
 <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
 </head>
 
