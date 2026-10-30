@@ -3,6 +3,27 @@
 Site vitrine de la collection de cartes, pensé pour le téléphone
 (lien partagé sur WhatsApp). Hébergé par GitHub Pages, construit par Jekyll.
 
+## Comment ça se joue
+
+L'accueil part vide : on n'y voit que le bouton **Ouvrir un booster**. Chaque
+booster tire **3 cartes** face cachée ; une carte retournée pour la première
+fois rejoint la collection et reste affichée sur l'accueil. Le tirage pioche
+d'abord parmi les cartes manquantes, donc chaque booster fait avancer le deck
+jusqu'à ce qu'il soit complet.
+
+La collection est conservée par le navigateur (`localStorage`, clé
+`wl-tcg-collection-v1`). Elle est donc propre à chaque téléphone et à chaque
+navigateur : deux personnes qui ouvrent le lien construisent deux decks
+distincts. Pour repartir de zéro, vider les données du site dans les réglages
+du navigateur, ou en console :
+
+```js
+localStorage.removeItem('wl-tcg-collection-v1')
+```
+
+En navigation privée, le stockage peut être refusé : la collection ne dure
+alors que le temps de la visite.
+
 ## Ajouter une carte
 
 Déposez l'image dans `cards/`. C'est tout : le site la liste automatiquement,
@@ -42,8 +63,8 @@ distante : une feuille de style et un fichier JavaScript, tous deux locaux.
 | Fichier | Rôle |
 |---|---|
 | `index.html` | Listing des cartes et balises Open Graph |
-| `assets/css/style.css` | Mise en page, carte 3D, effet holographique |
-| `assets/js/app.js` | Plein écran, gestes, booster |
+| `assets/css/style.css` | Mise en page, retournement de la carte |
+| `assets/js/app.js` | Collection, boosters, plein écran, gestes |
 | `assets/og.jpg` | Vignette affichée par WhatsApp |
 | `_config.yml` | Titre, description, URL du site, dos des cartes |
 

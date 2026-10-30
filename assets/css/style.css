@@ -270,7 +270,10 @@ footer p{
    ══════════════════════════════════════════════════════════════════ */
 
 .viewer{
-  position:fixed; inset:0;
+  position:fixed;
+  top:0; left:0; right:0; bottom:0;
+  height:100vh;      /* repli */
+  height:100svh;     /* hauteur réellement visible : jamais sous les barres iOS */
   z-index:100;
   display:flex;
   flex-direction:column;
@@ -352,17 +355,6 @@ footer p{
   -webkit-perspective:1400px;
 }
 
-.tilt{
-  position:relative;
-  width:100%; height:100%;
-  transform:rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(var(--sc, 1));
-  transform-style:preserve-3d;
-  -webkit-transform-style:preserve-3d;
-  transition:transform .4s cubic-bezier(.22,.78,.3,1);
-  will-change:transform;
-}
-.tilt.live{ transition:none; }
-
 .flipper{
   position:relative;
   width:100%; height:100%;
@@ -376,7 +368,6 @@ footer p{
   position:absolute; inset:0;
   border-radius:clamp(10px, 2.2vmin, 18px);
   overflow:hidden;
-  isolation:isolate;                 /* garde le mélange holo local */
   backface-visibility:hidden;
   -webkit-backface-visibility:hidden;
   background:#05050a;
@@ -393,74 +384,6 @@ footer p{
   -webkit-user-select:none; user-select:none;
   -webkit-user-drag:none;
   pointer-events:none;
-}
-
-/* ── Effet holographique (suit le doigt) ─────────────────────────── */
-/* Les cartes sont déjà irisées : on reste sur un reflet spéculaire
-   et des micro-paillettes, pas sur un arc-en-ciel qui brouillerait
-   le texte. --mx / --my sont la position du doigt, en %.            */
-
-.holo{
-  position:absolute; inset:0;
-  pointer-events:none;
-  opacity:var(--holo, 0);
-  transition:opacity .35s ease;
-}
-
-/* 1. Bandes irisées, très discrètes */
-.holo-bands{
-  background:
-    repeating-linear-gradient(
-      100deg,
-      rgba(255,80,120,.5)  0%,
-      rgba(255,220,100,.5) 9%,
-      rgba(120,255,180,.5) 18%,
-      rgba(110,190,255,.5) 27%,
-      rgba(200,130,255,.5) 36%,
-      rgba(255,80,120,.5)  45%);
-  background-size:220% 220%;
-  background-position:calc(var(--mx, 50%) * 1.1) calc(var(--my, 50%) * 1.1);
-  mix-blend-mode:color-dodge;
-  opacity:calc(var(--holo, 0) * .13);
-}
-
-/* 2. Paillettes : trame de points révélée autour du doigt */
-.holo-sparkle{
-  background-image:
-    radial-gradient(circle at 18% 24%, rgba(255,255,255,.95) 0 1.1px, transparent 1.7px),
-    radial-gradient(circle at 63% 11%, rgba(255,240,190,.85) 0 1.3px, transparent 1.9px),
-    radial-gradient(circle at 41% 67%, rgba(255,255,255,.8)  0 1px,   transparent 1.6px),
-    radial-gradient(circle at 86% 52%, rgba(190,235,255,.85) 0 1.2px, transparent 1.8px),
-    radial-gradient(circle at 8%  81%, rgba(255,255,255,.75) 0 1px,   transparent 1.5px),
-    radial-gradient(circle at 72% 89%, rgba(255,225,255,.8)  0 1.2px, transparent 1.8px);
-  background-size:46px 46px;
-  background-position:calc(var(--mx, 50%) * .25) calc(var(--my, 50%) * .25);
-  mix-blend-mode:color-dodge;
-  -webkit-mask-image:radial-gradient(34% 25% at var(--mx, 50%) var(--my, 50%), #000 0%, rgba(0,0,0,.3) 55%, transparent 100%);
-  mask-image:radial-gradient(34% 25% at var(--mx, 50%) var(--my, 50%), #000 0%, rgba(0,0,0,.3) 55%, transparent 100%);
-  opacity:calc(var(--holo, 0) * .5);
-}
-
-/* 3. Reflet spéculaire sous le doigt */
-.holo-glare{
-  background:radial-gradient(
-    34% 25% at var(--mx, 50%) var(--my, 50%),
-    rgba(255,252,240,.34) 0%,
-    rgba(255,240,200,.12) 38%,
-    transparent 72%);
-  mix-blend-mode:soft-light;
-  opacity:calc(var(--holo, 0) * 1);
-}
-
-/* 4. Arête lumineuse qui glisse sur le bord */
-.holo-edge{
-  background:linear-gradient(
-    calc(var(--mx, 50%) * 1.6 + 60deg),
-    transparent 40%,
-    rgba(255,255,255,.16) 50%,
-    transparent 60%);
-  mix-blend-mode:overlay;
-  opacity:calc(var(--holo, 0) * .45);
 }
 
 /* ── Bas du lecteur ──────────────────────────────────────────────── */
@@ -513,6 +436,15 @@ footer p{
     0 26px 60px rgba(0,0,0,.8),
     0 0 60px rgba(212,175,55,.2);
 }
+
+/* Apparition d'une carte nouvellement obtenue sur l'accueil */
+@keyframes tile-in{
+  from{ opacity:0; transform:translateY(10px) scale(.96); }
+  to  { opacity:1; transform:none; }
+}
+.grid li.fresh{ animation:tile-in .45s cubic-bezier(.22,.78,.3,1) both; }
+
+.count.full{ color:var(--or); opacity:.95; }
 
 /* Éclat doré à la révélation */
 @keyframes reveal-flash{

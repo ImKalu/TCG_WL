@@ -72,11 +72,11 @@ layout: null
   <h1>The&nbsp;White&nbsp;Lotus</h1>
   <p class="kicker">Trading Card Game</p>
   <div class="rule" role="presentation"><span></span><i>&#10022;</i><span></span></div>
-  <p class="count">{{ cards.size }} carte{% if cards.size > 1 %}s{% endif %} dans la collection</p>
+  <p class="count" id="count">{{ cards.size }} carte{% if cards.size > 1 %}s{% endif %} à collectionner</p>
   <button class="booster-btn" id="boosterBtn" type="button">
     <span class="booster-shine" aria-hidden="true"></span>
     <span class="booster-label">Ouvrir un booster</span>
-    <span class="booster-sub">5 cartes au hasard</span>
+    <span class="booster-sub">3 cartes au hasard</span>
   </button>
 </header>
 
@@ -84,6 +84,7 @@ layout: null
   {%- if cards.size == 0 -%}
   <p class="empty">Aucune carte pour le moment. Déposez des images dans le dossier <code>cards/</code>.</p>
   {%- else -%}
+  <p class="empty" id="emptyState" hidden>Votre collection est vide.<br>Ouvrez un booster pour la commencer.</p>
   <ul class="grid" id="grid">
     {%- for f in cards -%}
       {%- comment -%} Nom affiché : on retire le préfixe numérique et on capitalise. {%- endcomment -%}
@@ -104,11 +105,11 @@ layout: null
       {%- assign label = label | strip -%}
       {%- if label == '' -%}{%- assign label = f.basename -%}{%- endif -%}
       {%- assign src = f.path | relative_url | uri_escape -%}
-    <li>
+    <li hidden>
       <button class="tile" type="button" data-src="{{ src }}" data-name="{{ label | escape }}" data-index="{{ forloop.index0 }}">
         <span class="tile-frame">
           <img src="{{ src }}" alt="Carte {{ label | escape }}" width="1000" height="1400"
-               loading="{% if forloop.index <= 2 %}eager{% else %}lazy{% endif %}" decoding="async">
+               loading="lazy" decoding="async">
         </span>
         <span class="tile-name"><b>{{ forloop.index | prepend: '0' | slice: -2, 2 }}</b>{{ label }}</span>
       </button>

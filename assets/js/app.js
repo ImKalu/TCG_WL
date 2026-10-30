@@ -1,7 +1,8 @@
 /* ──────────────────────────────────────────────────────────────────
    The White Lotus · TCG
-   Lecteur plein écran : une carte à la fois, glisser pour changer,
-   toucher pour retourner, reflet holographique qui suit le doigt.
+   L'accueil ne montre que les cartes déjà obtenues. On les gagne en
+   ouvrant des boosters de 3 cartes : une carte révélée rejoint la
+   collection, conservée dans le navigateur.
    Vanilla, aucune dépendance.
    ────────────────────────────────────────────────────────────────── */
 (function () {
@@ -11,15 +12,73 @@
   if (!grid) return;
 
   var BACK = document.body.dataset.back || '';
+  var BOOSTER_SIZE = 3;
+  var STORE_KEY = 'wl-tcg-collection-v1';
+  var RATIO = 1000 / 1400;
 
-  /* Les cartes viennent du DOM : la grille reste l'unique source. */
-  var CARDS = Array.prototype.map.call(
-    grid.querySelectorAll('.tile'),
-    function (t) { return { src: t.dataset.src, name: t.dataset.name }; }
-  );
+  var tiles = Array.prototype.slice.call(grid.querySelectorAll('.tile'));
+  var CARDS = tiles.map(function (t) {
+    return { src: t.dataset.src, name: t.dataset.name };
+  });
   if (!CARDS.length) return;
 
-  var BOOSTER_SIZE = Math.min(5, CARDS.length);
+  var countEl = document.getElementById('count');
+  var emptyEl = document.getElementById('emptyState');
+
+  /* ── Collection conservée ────────────────────────────────────── */
+  /* Le stockage peut être indisponible (navigation privée) : dans ce
+     cas la collection ne vit que le temps de la visite.             */
+
+  var owned = [];
+  try {
+    var raw = window.localStorage.getItem(STORE_KEY);
+    var parsed = raw ? JSON.parse(raw) : null;
+    if (Object.prototype.toString.call(parsed) === '[object Array]') owned = parsed;
+  } catch (e) { owned = []; }
+
+  function isOwned(card) { return owned.indexOf(card.src) !== -1; }
+
+  function addOwned(card) {
+    if (isOwned(card)) return false;
+    owned.push(card.src);
+    try { window.localStorage.setItem(STORE_KEY, JSON.stringify(owned)); } catch (e) {}
+    fresh[card.src] = true;
+    return true;
+  }
+
+  var fresh = {};   // cartes obtenues à l'instant : animation à l'accueil
+
+  /* ── Accueil ─────────────────────────────────────────────────── */
+
+  function paintHome() {
+    var n = 0;
+    tiles.forEach(function (t, i) {
+      var li = t.parentNode;
+      var own = isOwned(CARDS[i]);
+      if (own) {
+        n++;
+        if (li.hidden) {
+          li.hidden = false;
+          if (fresh[CARDS[i].src]) {
+            li.classList.add('fresh');
+            delete fresh[CARDS[i].src];
+          }
+        }
+      } else {
+        li.hidden = true;
+      }
+    });
+
+    if (emptyEl) emptyEl.hidden = n > 0;
+    if (countEl) {
+      countEl.textContent = n === 0
+        ? CARDS.length + ' cartes à collectionner'
+        : (n >= CARDS.length
+            ? 'Collection complète · ' + n + ' / ' + CARDS.length
+            : 'Votre collection · ' + n + ' / ' + CARDS.length);
+      countEl.classList.toggle('full', n >= CARDS.length);
+    }
+  }
 
   /* ── Construction du lecteur ─────────────────────────────────── */
 
@@ -48,51 +107,19 @@
   document.body.appendChild(viewer);
 
   var deck    = viewer.querySelector('#deck');
+  var wrap    = viewer.querySelector('.deck-wrap');
   var elCount = viewer.querySelector('#vCount');
   var elName  = viewer.querySelector('#vName');
   var elHint  = viewer.querySelector('#vHint');
   var elDots  = viewer.querySelector('#vDots');
   var elDone  = viewer.querySelector('#vDone');
 
-  /* ── État ────────────────────────────────────────────────────── */
-
-  var list = [];          // cartes affichées dans le lecteur
-  var index = 0;          // carte courante
-  var booster = false;    // mode booster ?
-  var revealed = [];      // cartes déjà révélées (mode booster)
+  var list = [];
+  var index = 0;
+  var booster = false;
+  var revealed = [];
   var open = false;
   var pushedState = false;
-
-  /* ── Fabrique d'une carte ────────────────────────────────────── */
-
-  function holoLayers() {
-    return '<div class="holo holo-bands"></div>' +
-           '<div class="holo holo-sparkle"></div>' +
-           '<div class="holo holo-edge"></div>' +
-           '<div class="holo holo-glare"></div>';
-  }
-
-  function makeSlide(card, faceDown) {
-    var slide = document.createElement('div');
-    slide.className = 'slide';
-    slide.innerHTML =
-      '<div class="card3d">' +
-        '<div class="tilt">' +
-          '<div class="flipper' + (faceDown ? ' flipped' : '') + '">' +
-            '<div class="face front">' +
-              '<img alt="' + escapeAttr(card.name) + '" decoding="async">' +
-              holoLayers() +
-            '</div>' +
-            '<div class="face back">' +
-              '<img src="' + escapeAttr(BACK) + '" alt="Dos de carte" decoding="async">' +
-              holoLayers() +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
-    slide.querySelector('.face.front img').dataset.src = card.src;
-    return slide;
-  }
 
   function escapeAttr(s) {
     return String(s == null ? '' : s)
@@ -100,7 +127,24 @@
       .replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  /* Ne charge que la carte courante et ses voisines. */
+  function makeSlide(card, faceDown) {
+    var slide = document.createElement('div');
+    slide.className = 'slide';
+    slide.innerHTML =
+      '<div class="card3d">' +
+        '<div class="flipper' + (faceDown ? ' flipped' : '') + '">' +
+          '<div class="face front">' +
+            '<img alt="' + escapeAttr(card.name) + '" decoding="async">' +
+          '</div>' +
+          '<div class="face back">' +
+            '<img src="' + escapeAttr(BACK) + '" alt="Dos de carte" decoding="async">' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    slide.querySelector('.face.front img').dataset.src = card.src;
+    return slide;
+  }
+
   function loadAround(i) {
     var slides = deck.children;
     for (var k = Math.max(0, i - 1); k <= Math.min(slides.length - 1, i + 1); k++) {
@@ -109,26 +153,34 @@
     }
   }
 
-  /* ── Ouverture / fermeture ───────────────────────────────────── */
+  /* ── Dimensionnement ─────────────────────────────────────────── */
+  /* La plus grande carte qui tienne entièrement, avec une marge
+     confortable en haut et en bas.                                  */
 
-  function build(cards, faceDown) {
-    deck.innerHTML = '';
-    var frag = document.createDocumentFragment();
-    cards.forEach(function (c) { frag.appendChild(makeSlide(c, faceDown)); });
-    deck.appendChild(frag);
+  function sizeDeck() {
+    var w = wrap.clientWidth;
+    var h = wrap.clientHeight;
+    if (!w || !h) return;
+    var cw = Math.min(w - 44, (h - 44) * RATIO);
+    deck.style.setProperty('--cw', Math.max(120, Math.floor(cw)) + 'px');
   }
+
+  /* ── Ouverture / fermeture ───────────────────────────────────── */
 
   function openViewer(cards, start, isBooster) {
     list = cards;
     booster = !!isBooster;
     revealed = list.map(function () { return !booster; });
-    index = start || 0;
+    index = Math.max(0, Math.min(list.length - 1, start || 0));
 
-    build(list, booster);
+    deck.innerHTML = '';
+    var frag = document.createDocumentFragment();
+    list.forEach(function (c) { frag.appendChild(makeSlide(c, booster)); });
+    deck.appendChild(frag);
+
     viewer.classList.toggle('booster', booster);
     elDone.classList.remove('show');
 
-    // Points de progression : uniquement en booster.
     elDots.innerHTML = '';
     if (booster) {
       list.forEach(function () { elDots.appendChild(document.createElement('span')); });
@@ -137,7 +189,6 @@
     viewer.hidden = false;
     document.body.classList.add('is-locked');
     open = true;
-    // reflow puis fondu
     void viewer.offsetWidth;
     viewer.classList.add('is-open');
 
@@ -156,6 +207,7 @@
     open = false;
     viewer.classList.remove('is-open');
     document.body.classList.remove('is-locked');
+    paintHome();
     setTimeout(function () {
       if (!open) { viewer.hidden = true; deck.innerHTML = ''; }
     }, 280);
@@ -167,21 +219,6 @@
     }
   }
 
-  /* ── Dimensionnement ─────────────────────────────────────────── */
-  /* La plus grande carte qui tienne entièrement à l'écran : on borne
-     par la largeur ET par la hauteur disponibles.                    */
-
-  var RATIO = 1000 / 1400;
-  var wrap = viewer.querySelector('.deck-wrap');
-
-  function sizeDeck() {
-    var w = wrap.clientWidth;
-    var h = wrap.clientHeight;
-    if (!w || !h) return;
-    var cw = Math.min(w - 26, (h - 14) * RATIO);
-    deck.style.setProperty('--cw', Math.max(120, Math.floor(cw)) + 'px');
-  }
-
   /* ── Navigation ──────────────────────────────────────────────── */
 
   function goTo(i, animate) {
@@ -191,7 +228,6 @@
     deck.style.setProperty('--dx', 0);
     loadAround(index);
     paint();
-    resetTilt();
   }
 
   function paint() {
@@ -204,28 +240,19 @@
       : (index + 1) + ' <em>/</em> ' + list.length;
 
     if (booster) {
-      elHint.textContent = shown ? 'Glissez pour la suivante' : 'Touchez pour révéler';
+      elHint.textContent = shown
+        ? (index < list.length - 1 ? 'Glissez pour la suivante' : 'Glissez pour revoir')
+        : 'Touchez pour révéler';
       Array.prototype.forEach.call(elDots.children, function (d, k) {
         d.className = k === index ? 'on' : (revealed[k] ? 'seen' : '');
       });
     } else {
-      elHint.textContent = 'Touchez pour retourner · glissez pour changer';
+      elHint.textContent = list.length > 1
+        ? 'Touchez pour retourner · glissez pour changer'
+        : 'Touchez pour retourner';
     }
-
-    // Le reflet n'est vivant que sur la carte à l'écran.
-    Array.prototype.forEach.call(deck.children, function (s, k) {
-      s.querySelector('.card3d').style.setProperty('--holo', k === index ? 0.32 : 0);
-    });
   }
 
-  function currentCard3d() {
-    var s = deck.children[index];
-    return s ? s.querySelector('.card3d') : null;
-  }
-  function currentTilt() {
-    var s = deck.children[index];
-    return s ? s.querySelector('.tilt') : null;
-  }
   function currentFlipper() {
     var s = deck.children[index];
     return s ? s.querySelector('.flipper') : null;
@@ -240,6 +267,7 @@
     if (booster && !revealed[index]) {
       revealed[index] = true;
       f.classList.remove('flipped');
+      addOwned(list[index]);
       flash();
       paint();
       if (revealed.every(Boolean)) {
@@ -251,7 +279,8 @@
   }
 
   function flash() {
-    var holder = currentCard3d();
+    var s = deck.children[index];
+    var holder = s && s.querySelector('.card3d');
     if (!holder) return;
     var el = document.createElement('div');
     el.className = 'flash';
@@ -259,77 +288,25 @@
     setTimeout(function () { el.remove(); }, 820);
   }
 
-  /* ── Inclinaison + reflet ────────────────────────────────────── */
+  /* ── Gestes : glisser pour changer, taper pour retourner ─────── */
 
-  var MAX_TILT = 11;
-
-  function applyTilt(clientX, clientY, live) {
-    var c3 = currentCard3d();
-    var t = currentTilt();
-    if (!c3 || !t) return;
-    var r = c3.getBoundingClientRect();
-    var px = (clientX - r.left) / r.width;
-    var py = (clientY - r.top) / r.height;
-    px = Math.max(0, Math.min(1, px));
-    py = Math.max(0, Math.min(1, py));
-
-    t.classList.toggle('live', !!live);
-    t.style.setProperty('--ry', ((px - 0.5) * 2 * MAX_TILT).toFixed(2) + 'deg');
-    t.style.setProperty('--rx', ((0.5 - py) * 2 * MAX_TILT).toFixed(2) + 'deg');
-    t.style.setProperty('--sc', live ? 1.02 : 1);
-
-    c3.style.setProperty('--mx', (px * 100).toFixed(1) + '%');
-    c3.style.setProperty('--my', (py * 100).toFixed(1) + '%');
-    c3.style.setProperty('--holo', 1);
-  }
-
-  function resetTilt() {
-    Array.prototype.forEach.call(deck.children, function (s, k) {
-      var t = s.querySelector('.tilt');
-      var c3 = s.querySelector('.card3d');
-      t.classList.remove('live');
-      t.style.setProperty('--rx', '0deg');
-      t.style.setProperty('--ry', '0deg');
-      t.style.setProperty('--sc', 1);
-      c3.style.setProperty('--mx', '50%');
-      c3.style.setProperty('--my', '50%');
-      c3.style.setProperty('--holo', k === index ? 0.32 : 0);
-    });
-  }
-
-  /* ── Gestes ──────────────────────────────────────────────────── */
-
-  var pt = null;   // geste en cours
+  var pt = null;
 
   deck.addEventListener('pointerdown', function (e) {
     if (!open || e.button > 0) return;
-    pt = {
-      id: e.pointerId,
-      x0: e.clientX, y0: e.clientY,
-      x: e.clientX, y: e.clientY,
-      t0: Date.now(),
-      axis: null,
-      moved: 0
-    };
+    pt = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX,
+           t0: Date.now(), axis: null, moved: 0 };
     deck.classList.remove('animate');
     try { deck.setPointerCapture(e.pointerId); } catch (err) {}
-    applyTilt(e.clientX, e.clientY, true);
   });
 
   deck.addEventListener('pointermove', function (e) {
-    if (!open) return;
-
-    // Survol souris : la carte suit le curseur.
-    if (!pt) {
-      if (e.pointerType === 'mouse') applyTilt(e.clientX, e.clientY, true);
-      return;
-    }
-    if (e.pointerId !== pt.id) return;
+    if (!open || !pt || e.pointerId !== pt.id) return;
 
     var dx = e.clientX - pt.x0;
     var dy = e.clientY - pt.y0;
-    pt.x = e.clientX; pt.y = e.clientY;
-    pt.moved = Math.max(pt.moved, Math.hypot(dx, dy));
+    pt.x = e.clientX;
+    pt.moved = Math.max(pt.moved, Math.sqrt(dx * dx + dy * dy));
 
     if (!pt.axis) {
       if (Math.abs(dx) > 9 && Math.abs(dx) > Math.abs(dy) * 1.15) pt.axis = 'x';
@@ -337,20 +314,10 @@
     }
 
     if (pt.axis === 'x') {
-      // On glisse la pile : la carte revient à plat.
       var lim = dx;
       if ((index === 0 && dx > 0) || (index === list.length - 1 && dx < 0)) lim = dx * 0.32;
       deck.style.setProperty('--dx', lim.toFixed(1));
-      var t = currentTilt();
-      if (t) {
-        t.classList.add('live');
-        t.style.setProperty('--rx', '0deg');
-        t.style.setProperty('--ry', (lim / 26).toFixed(2) + 'deg');
-        t.style.setProperty('--sc', 1);
-      }
       elHint.classList.add('fade');
-    } else if (pt.axis !== 'y') {
-      applyTilt(e.clientX, e.clientY, true);
     }
   });
 
@@ -361,7 +328,7 @@
 
     var dx = g.x - g.x0;
     var dt = Date.now() - g.t0;
-    var vx = dx / Math.max(1, dt);          // px / ms
+    var vx = dx / Math.max(1, dt);
     var w = deck.getBoundingClientRect().width || window.innerWidth;
 
     if (g.axis === 'x') {
@@ -373,21 +340,16 @@
       return;
     }
 
-    // Tap franc : on retourne la carte.
     if (g.moved < 12 && dt < 400) {
       flip();
       elHint.classList.add('fade');
     }
     deck.classList.add('animate');
     deck.style.setProperty('--dx', 0);
-    resetTilt();
   }
 
   deck.addEventListener('pointerup', endGesture);
   deck.addEventListener('pointercancel', endGesture);
-  deck.addEventListener('pointerleave', function (e) {
-    if (!pt && e.pointerType === 'mouse') resetTilt();
-  });
   deck.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   deck.addEventListener('dragstart', function (e) { e.preventDefault(); });
 
@@ -396,7 +358,13 @@
   grid.addEventListener('click', function (e) {
     var tile = e.target.closest('.tile');
     if (!tile) return;
-    openViewer(CARDS.slice(), parseInt(tile.dataset.index, 10) || 0, false);
+    // On ne navigue qu'entre les cartes déjà obtenues.
+    var deckCards = CARDS.filter(isOwned);
+    var start = 0;
+    for (var k = 0; k < deckCards.length; k++) {
+      if (deckCards[k].src === tile.dataset.src) { start = k; break; }
+    }
+    if (deckCards.length) openViewer(deckCards, start, false);
   });
 
   viewer.querySelector('#vClose').addEventListener('click', function () { closeViewer(); });
@@ -408,21 +376,30 @@
     else closeViewer();
   });
 
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function openBooster() {
+    // On tire d'abord parmi les cartes manquantes : la collection avance
+    // à chaque booster. Une fois complète, on repioche au hasard.
+    var pool = shuffle(CARDS.filter(function (c) { return !isOwned(c); }));
+    if (pool.length < BOOSTER_SIZE) {
+      pool = pool.concat(shuffle(CARDS.filter(isOwned)));
+    }
+    openViewer(pool.slice(0, Math.min(BOOSTER_SIZE, CARDS.length)), 0, true);
+  }
+
   var boosterBtn = document.getElementById('boosterBtn');
   if (boosterBtn) boosterBtn.addEventListener('click', openBooster);
 
-  function openBooster() {
-    var pool = CARDS.slice();
-    for (var i = pool.length - 1; i > 0; i--) {         // Fisher–Yates
-      var j = Math.floor(Math.random() * (i + 1));
-      var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
-    }
-    openViewer(pool.slice(0, BOOSTER_SIZE), 0, true);
-  }
-
   document.addEventListener('keydown', function (e) {
     if (!open) return;
-    if (e.key === 'Escape') { closeViewer(); }
+    if (e.key === 'Escape') closeViewer();
     else if (e.key === 'ArrowRight') { deck.classList.add('animate'); goTo(index + 1, true); }
     else if (e.key === 'ArrowLeft')  { deck.classList.add('animate'); goTo(index - 1, true); }
     else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flip(); }
@@ -440,4 +417,7 @@
   }
   window.addEventListener('resize', onResize);
   window.addEventListener('orientationchange', function () { setTimeout(onResize, 120); });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
+
+  paintHome();
 })();
