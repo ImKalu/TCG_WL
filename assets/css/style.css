@@ -1,0 +1,568 @@
+/* ──────────────────────────────────────────────────────────────────
+   The White Lotus · TCG
+   Noir / blanc / doré. Pensé d'abord pour le téléphone.
+   Aucune dépendance externe : polices système uniquement.
+   ────────────────────────────────────────────────────────────────── */
+
+:root{
+  --noir:        #07070a;
+  --noir-2:      #0e0e13;
+  --encre:       #15151c;
+  --blanc:       #f4f1ea;
+  --blanc-doux:  #cfcabd;
+  --or:          #d4af37;
+  --or-clair:    #f0d98a;
+  --or-sombre:   #8a6d1f;
+  --carte-ratio: 1000 / 1400;
+  --serif: "Didot", "Bodoni 72", "Bodoni 72 Oldstyle", "Hoefler Text", Baskerville, Georgia, "Times New Roman", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+
+html{ -webkit-text-size-adjust:100%; }
+
+body{
+  margin:0;
+  background:var(--noir);
+  background-image:
+    radial-gradient(120% 70% at 50% -10%, #1a1a24 0%, transparent 60%),
+    radial-gradient(90% 50% at 50% 110%, #14121a 0%, transparent 60%);
+  background-attachment:fixed;
+  color:var(--blanc);
+  font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+
+body.is-locked{ overflow:hidden; }
+
+/* ── En-tête ─────────────────────────────────────────────────────── */
+
+.masthead{
+  text-align:center;
+  padding:calc(34px + env(safe-area-inset-top)) 20px 26px;
+}
+
+.lotus{
+  width:54px; height:34px;
+  color:var(--or);
+  opacity:.95;
+  filter:drop-shadow(0 0 10px rgba(212,175,55,.35));
+}
+
+.masthead h1{
+  margin:10px 0 0;
+  font-family:var(--serif);
+  font-weight:400;
+  font-size:clamp(30px, 10.5vw, 54px);
+  letter-spacing:.012em;
+  line-height:1.04;
+  background:linear-gradient(176deg, #fffdf6 8%, var(--or-clair) 42%, var(--or) 62%, #9e7c24 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  -webkit-text-fill-color:transparent;
+}
+
+.kicker{
+  margin:9px 0 0;
+  font-size:11px;
+  letter-spacing:.42em;
+  text-indent:.42em;
+  text-transform:uppercase;
+  color:var(--blanc-doux);
+  opacity:.78;
+}
+
+.rule{
+  display:flex; align-items:center; justify-content:center;
+  gap:12px;
+  margin:20px auto;
+  max-width:260px;
+  color:var(--or);
+}
+.rule span{
+  flex:1; height:1px;
+  background:linear-gradient(90deg, transparent, rgba(212,175,55,.75));
+}
+.rule span:last-child{ background:linear-gradient(90deg, rgba(212,175,55,.75), transparent); }
+.rule i{ font-style:normal; font-size:11px; opacity:.9; }
+
+.count{
+  margin:0 0 22px;
+  font-size:12.5px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--blanc-doux);
+  opacity:.65;
+}
+
+/* ── Bouton booster ──────────────────────────────────────────────── */
+
+.booster-btn{
+  position:relative;
+  display:block;
+  width:min(360px, 100%);
+  margin:0 auto;
+  padding:15px 26px 16px;
+  border:1px solid rgba(212,175,55,.5);
+  border-radius:3px;
+  background:
+    linear-gradient(180deg, rgba(212,175,55,.14), rgba(212,175,55,.04)),
+    var(--encre);
+  color:var(--blanc);
+  font-family:inherit;
+  cursor:pointer;
+  overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+  box-shadow:0 8px 30px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.07);
+  transition:transform .14s ease, border-color .25s ease, box-shadow .25s ease;
+}
+.booster-btn:active{ transform:scale(.978); }
+@media (hover:hover){
+  .booster-btn:hover{
+    border-color:var(--or);
+    box-shadow:0 10px 36px rgba(0,0,0,.65), 0 0 24px rgba(212,175,55,.2), inset 0 1px 0 rgba(255,255,255,.1);
+  }
+}
+
+.booster-label{
+  display:block;
+  font-family:var(--serif);
+  font-size:20px;
+  letter-spacing:.06em;
+  color:var(--or-clair);
+}
+.booster-sub{
+  display:block;
+  margin-top:4px;
+  font-size:10.5px;
+  letter-spacing:.26em;
+  text-indent:.26em;
+  text-transform:uppercase;
+  color:var(--blanc-doux);
+  opacity:.6;
+}
+
+/* Reflet qui balaie le bouton */
+.booster-shine{
+  position:absolute; inset:0;
+  background:linear-gradient(105deg, transparent 38%, rgba(255,246,214,.3) 50%, transparent 62%);
+  transform:translateX(-120%);
+  animation:sweep 4.6s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes sweep{
+  0%,62%  { transform:translateX(-120%); }
+  86%,100%{ transform:translateX(120%); }
+}
+
+/* ── Grille ──────────────────────────────────────────────────────── */
+
+main{ padding:0 14px 10px; }
+
+.grid{
+  list-style:none;
+  margin:0 auto;
+  padding:0;
+  max-width:1180px;
+  display:grid;
+  grid-template-columns:repeat(2, 1fr);
+  gap:14px;
+}
+@media (min-width:620px){ .grid{ grid-template-columns:repeat(3,1fr); gap:20px; } }
+@media (min-width:920px){ .grid{ grid-template-columns:repeat(4,1fr); gap:24px; } }
+
+.tile{
+  display:block;
+  width:100%;
+  padding:0;
+  border:0;
+  background:none;
+  color:inherit;
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .18s cubic-bezier(.2,.8,.3,1);
+}
+.tile:active{ transform:scale(.965); }
+@media (hover:hover){ .tile:hover{ transform:translateY(-4px); } }
+
+.tile-frame{
+  position:relative;
+  display:block;
+  aspect-ratio:var(--carte-ratio);
+  border-radius:9px;
+  overflow:hidden;
+  background:var(--noir-2);
+  box-shadow:
+    0 0 0 1px rgba(212,175,55,.3),
+    0 10px 24px rgba(0,0,0,.6);
+}
+.tile-frame::after{          /* liseré doré intérieur + léger lustre */
+  content:"";
+  position:absolute; inset:0;
+  border-radius:9px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);
+  background:linear-gradient(150deg, rgba(255,255,255,.1) 0%, transparent 32%, transparent 70%, rgba(212,175,55,.1) 100%);
+  pointer-events:none;
+}
+.tile-frame img{
+  display:block;
+  width:100%; height:100%;
+  object-fit:cover;
+}
+
+.tile-name{
+  display:flex;
+  align-items:baseline;
+  gap:7px;
+  margin-top:9px;
+  padding:0 2px;
+  font-family:var(--serif);
+  font-size:14.5px;
+  line-height:1.25;
+  color:var(--blanc);
+}
+.tile-name b{
+  font-family:var(--sans);
+  font-weight:600;
+  font-size:9.5px;
+  letter-spacing:.1em;
+  color:var(--or);
+  opacity:.8;
+}
+
+.empty{
+  max-width:520px;
+  margin:40px auto;
+  text-align:center;
+  color:var(--blanc-doux);
+  line-height:1.7;
+}
+.empty code{
+  color:var(--or-clair);
+  background:var(--encre);
+  padding:2px 6px;
+  border-radius:3px;
+}
+
+/* ── Pied ────────────────────────────────────────────────────────── */
+
+footer{
+  padding:26px 20px calc(30px + env(safe-area-inset-bottom));
+  text-align:center;
+}
+footer p{
+  margin:0;
+  font-size:10.5px;
+  letter-spacing:.3em;
+  text-indent:.3em;
+  text-transform:uppercase;
+  color:var(--blanc-doux);
+  opacity:.4;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Lecteur plein écran
+   ══════════════════════════════════════════════════════════════════ */
+
+.viewer{
+  position:fixed; inset:0;
+  z-index:100;
+  display:flex;
+  flex-direction:column;
+  background:rgba(4,4,7,.93);
+  -webkit-backdrop-filter:blur(22px) saturate(1.1);
+  backdrop-filter:blur(22px) saturate(1.1);
+  opacity:0;
+  transition:opacity .26s ease;
+  touch-action:none;
+}
+.viewer[hidden]{ display:none; }
+.viewer.is-open{ opacity:1; }
+
+.v-top{
+  flex:none;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:calc(12px + env(safe-area-inset-top)) 16px 6px;
+}
+
+.v-count{
+  font-size:11.5px;
+  letter-spacing:.2em;
+  color:var(--or);
+  font-variant-numeric:tabular-nums;
+}
+.v-count em{ font-style:normal; color:var(--blanc-doux); opacity:.5; }
+
+.v-close{
+  width:38px; height:38px;
+  display:grid; place-items:center;
+  border:1px solid rgba(212,175,55,.35);
+  border-radius:50%;
+  background:rgba(255,255,255,.04);
+  color:var(--or-clair);
+  font-size:17px; line-height:1;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.v-close:active{ transform:scale(.92); }
+
+/* Piste de cartes : une carte par écran, défilement horizontal */
+.deck-wrap{
+  flex:1 1 auto;
+  min-height:0;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+}
+.deck{
+  display:flex;
+  width:100%;
+  height:100%;
+  align-items:center;
+  will-change:transform;
+  transform:translate3d(calc(var(--i, 0) * -100% + var(--dx, 0) * 1px), 0, 0);
+}
+.deck.animate{ transition:transform .34s cubic-bezier(.22,.78,.3,1); }
+
+.slide{
+  flex:0 0 100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* ── La carte en 3D ──────────────────────────────────────────────── */
+/* --cw est calculé en JS : la plus grande carte qui tienne en entier
+   dans l'espace disponible, hauteur ET largeur comprises.            */
+
+.card3d{
+  position:relative;
+  width:var(--cw, 84vw);
+  aspect-ratio:var(--carte-ratio);
+  perspective:1400px;
+  -webkit-perspective:1400px;
+}
+
+.tilt{
+  position:relative;
+  width:100%; height:100%;
+  transform:rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(var(--sc, 1));
+  transform-style:preserve-3d;
+  -webkit-transform-style:preserve-3d;
+  transition:transform .4s cubic-bezier(.22,.78,.3,1);
+  will-change:transform;
+}
+.tilt.live{ transition:none; }
+
+.flipper{
+  position:relative;
+  width:100%; height:100%;
+  transform-style:preserve-3d;
+  -webkit-transform-style:preserve-3d;
+  transition:transform .62s cubic-bezier(.3,.9,.25,1);
+}
+.flipper.flipped{ transform:rotateY(180deg); }
+
+.face{
+  position:absolute; inset:0;
+  border-radius:clamp(10px, 2.2vmin, 18px);
+  overflow:hidden;
+  isolation:isolate;                 /* garde le mélange holo local */
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  background:#05050a;
+  box-shadow:
+    0 0 0 1px rgba(212,175,55,.42),
+    0 26px 60px rgba(0,0,0,.78),
+    0 0 46px rgba(212,175,55,.1);
+}
+.face.back{ transform:rotateY(180deg); }
+.face img{
+  display:block;
+  width:100%; height:100%;
+  object-fit:cover;
+  -webkit-user-select:none; user-select:none;
+  -webkit-user-drag:none;
+  pointer-events:none;
+}
+
+/* ── Effet holographique (suit le doigt) ─────────────────────────── */
+/* Les cartes sont déjà irisées : on reste sur un reflet spéculaire
+   et des micro-paillettes, pas sur un arc-en-ciel qui brouillerait
+   le texte. --mx / --my sont la position du doigt, en %.            */
+
+.holo{
+  position:absolute; inset:0;
+  pointer-events:none;
+  opacity:var(--holo, 0);
+  transition:opacity .35s ease;
+}
+
+/* 1. Bandes irisées, très discrètes */
+.holo-bands{
+  background:
+    repeating-linear-gradient(
+      100deg,
+      rgba(255,80,120,.5)  0%,
+      rgba(255,220,100,.5) 9%,
+      rgba(120,255,180,.5) 18%,
+      rgba(110,190,255,.5) 27%,
+      rgba(200,130,255,.5) 36%,
+      rgba(255,80,120,.5)  45%);
+  background-size:220% 220%;
+  background-position:calc(var(--mx, 50%) * 1.1) calc(var(--my, 50%) * 1.1);
+  mix-blend-mode:color-dodge;
+  opacity:calc(var(--holo, 0) * .13);
+}
+
+/* 2. Paillettes : trame de points révélée autour du doigt */
+.holo-sparkle{
+  background-image:
+    radial-gradient(circle at 18% 24%, rgba(255,255,255,.95) 0 1.1px, transparent 1.7px),
+    radial-gradient(circle at 63% 11%, rgba(255,240,190,.85) 0 1.3px, transparent 1.9px),
+    radial-gradient(circle at 41% 67%, rgba(255,255,255,.8)  0 1px,   transparent 1.6px),
+    radial-gradient(circle at 86% 52%, rgba(190,235,255,.85) 0 1.2px, transparent 1.8px),
+    radial-gradient(circle at 8%  81%, rgba(255,255,255,.75) 0 1px,   transparent 1.5px),
+    radial-gradient(circle at 72% 89%, rgba(255,225,255,.8)  0 1.2px, transparent 1.8px);
+  background-size:46px 46px;
+  background-position:calc(var(--mx, 50%) * .25) calc(var(--my, 50%) * .25);
+  mix-blend-mode:color-dodge;
+  -webkit-mask-image:radial-gradient(34% 25% at var(--mx, 50%) var(--my, 50%), #000 0%, rgba(0,0,0,.3) 55%, transparent 100%);
+  mask-image:radial-gradient(34% 25% at var(--mx, 50%) var(--my, 50%), #000 0%, rgba(0,0,0,.3) 55%, transparent 100%);
+  opacity:calc(var(--holo, 0) * .5);
+}
+
+/* 3. Reflet spéculaire sous le doigt */
+.holo-glare{
+  background:radial-gradient(
+    34% 25% at var(--mx, 50%) var(--my, 50%),
+    rgba(255,252,240,.34) 0%,
+    rgba(255,240,200,.12) 38%,
+    transparent 72%);
+  mix-blend-mode:soft-light;
+  opacity:calc(var(--holo, 0) * 1);
+}
+
+/* 4. Arête lumineuse qui glisse sur le bord */
+.holo-edge{
+  background:linear-gradient(
+    calc(var(--mx, 50%) * 1.6 + 60deg),
+    transparent 40%,
+    rgba(255,255,255,.16) 50%,
+    transparent 60%);
+  mix-blend-mode:overlay;
+  opacity:calc(var(--holo, 0) * .45);
+}
+
+/* ── Bas du lecteur ──────────────────────────────────────────────── */
+
+.v-bottom{
+  flex:none;
+  text-align:center;
+  padding:12px 20px calc(16px + env(safe-area-inset-bottom));
+}
+.v-name{
+  font-family:var(--serif);
+  font-size:clamp(20px, 6vw, 30px);
+  line-height:1.15;
+  background:linear-gradient(176deg, #fffdf6 10%, var(--or-clair) 48%, var(--or) 100%);
+  -webkit-background-clip:text; background-clip:text;
+  color:transparent; -webkit-text-fill-color:transparent;
+}
+.v-hint{
+  margin-top:7px;
+  font-size:9.5px;
+  letter-spacing:.13em;
+  text-indent:.13em;
+  text-transform:uppercase;
+  color:var(--blanc-doux);
+  opacity:.45;
+  transition:opacity .4s ease;
+}
+.v-hint.fade{ opacity:0; }
+
+/* Points de progression (mode booster) */
+.v-dots{
+  display:flex; justify-content:center; gap:7px;
+  margin-top:11px;
+  height:6px;
+}
+.v-dots span{
+  width:6px; height:6px;
+  border-radius:50%;
+  background:rgba(244,241,234,.22);
+  transition:background .3s ease, transform .3s ease;
+}
+.v-dots span.on{ background:var(--or); transform:scale(1.25); }
+.v-dots span.seen{ background:rgba(212,175,55,.45); }
+
+/* ── Mode booster ────────────────────────────────────────────────── */
+
+.viewer.booster .face{
+  box-shadow:
+    0 0 0 1px rgba(212,175,55,.55),
+    0 26px 60px rgba(0,0,0,.8),
+    0 0 60px rgba(212,175,55,.2);
+}
+
+/* Éclat doré à la révélation */
+@keyframes reveal-flash{
+  0%  { opacity:0; transform:scale(.82); }
+  28% { opacity:1; }
+  100%{ opacity:0; transform:scale(1.5); }
+}
+.flash{
+  position:absolute; inset:-14%;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(255,238,180,.75) 0%, rgba(212,175,55,.3) 38%, transparent 70%);
+  pointer-events:none;
+  animation:reveal-flash .78s ease-out forwards;
+  z-index:2;
+}
+
+/* Bandeau de fin de booster */
+.booster-done{
+  position:absolute;
+  left:0; right:0;
+  bottom:calc(96px + env(safe-area-inset-bottom));
+  display:flex; justify-content:center; gap:10px;
+  padding:0 20px;
+  opacity:0;
+  transform:translateY(8px);
+  transition:opacity .4s ease, transform .4s ease;
+  pointer-events:none;
+}
+.booster-done.show{ opacity:1; transform:none; pointer-events:auto; }
+.booster-done button{
+  padding:11px 20px;
+  border:1px solid rgba(212,175,55,.5);
+  border-radius:3px;
+  background:rgba(14,14,19,.9);
+  color:var(--or-clair);
+  font-family:var(--serif);
+  font-size:15px;
+  letter-spacing:.05em;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.booster-done button:active{ transform:scale(.96); }
+
+/* ── Préférences système ─────────────────────────────────────────── */
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+  }
+  .booster-shine{ display:none; }
+}

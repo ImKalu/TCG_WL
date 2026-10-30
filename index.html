@@ -1,0 +1,127 @@
+---
+layout: null
+---
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{ site.title }} — {{ site.tagline }}</title>
+<meta name="description" content="{{ site.description }}">
+<meta name="theme-color" content="#07070a">
+
+{%- comment -%}
+  ─────────────────────────────────────────────────────────────────────
+  Les cartes sont lues directement dans cards/ : aucune liste à tenir.
+  Déposer une image dans ce dossier suffit à la faire apparaître.
+  Le préfixe « 01- », « 02- »… donne l'ordre, le reste du nom de
+  fichier donne le nom affiché. Le dos commun ({{ site.back }}) est exclu.
+  ─────────────────────────────────────────────────────────────────────
+{%- endcomment -%}
+
+{%- assign image_ext = ".jpg,.jpeg,.png,.webp,.gif,.avif,.JPG,.JPEG,.PNG,.WEBP,.GIF,.AVIF" | split: "," -%}
+{%- assign cards = site.static_files
+      | where_exp: "f", "f.path contains '/cards/'"
+      | where_exp: "f", "image_ext contains f.extname"
+      | where_exp: "f", "f.basename != site.back"
+      | sort: "name" -%}
+
+{%- assign back_url = '' -%}
+{%- for f in site.static_files -%}
+  {%- if f.path contains '/cards/' and f.basename == site.back -%}
+    {%- assign back_url = f.path | relative_url | uri_escape -%}
+  {%- endif -%}
+{%- endfor -%}
+
+{%- assign og_image = '/assets/og.jpg' | absolute_url -%}
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{ site.title }}">
+<meta property="og:title" content="{{ site.title }} — {{ site.tagline }}">
+<meta property="og:description" content="{{ site.description }}">
+<meta property="og:url" content="{{ '/' | absolute_url }}">
+<meta property="og:image" content="{{ og_image }}">
+<meta property="og:image:secure_url" content="{{ og_image }}">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Cartes {{ site.title }}">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ site.title }} — {{ site.tagline }}">
+<meta name="twitter:description" content="{{ site.description }}">
+<meta name="twitter:image" content="{{ og_image }}">
+
+<link rel="icon" href="{{ '/assets/favicon.png' | relative_url }}" type="image/png">
+<link rel="apple-touch-icon" href="{{ '/assets/favicon.png' | relative_url }}">
+<link rel="preload" as="image" href="{{ back_url }}">
+<link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+</head>
+
+<body data-back="{{ back_url }}">
+
+<header class="masthead">
+  <svg class="lotus" viewBox="0 0 64 40" aria-hidden="true" focusable="false">
+    <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M32 37C32 37 24 30 24 20 24 12 32 4 32 4s8 8 8 16c0 10-8 17-8 17z"/>
+      <path d="M32 37c0 0-10-2-15-9-4-6-3-14-3-14s8 1 13 7c4 5 5 12 5 16z"/>
+      <path d="M32 37c0 0 10-2 15-9 4-6 3-14 3-14s-8 1-13 7c-4 5-5 12-5 16z"/>
+      <path d="M32 37c0 0-13 1-19-4M32 37c0 0 13 1 19-4"/>
+    </g>
+  </svg>
+  <h1>The&nbsp;White&nbsp;Lotus</h1>
+  <p class="kicker">Trading Card Game</p>
+  <div class="rule" role="presentation"><span></span><i>&#10022;</i><span></span></div>
+  <p class="count">{{ cards.size }} carte{% if cards.size > 1 %}s{% endif %} dans la collection</p>
+  <button class="booster-btn" id="boosterBtn" type="button">
+    <span class="booster-shine" aria-hidden="true"></span>
+    <span class="booster-label">Ouvrir un booster</span>
+    <span class="booster-sub">5 cartes au hasard</span>
+  </button>
+</header>
+
+<main>
+  {%- if cards.size == 0 -%}
+  <p class="empty">Aucune carte pour le moment. Déposez des images dans le dossier <code>cards/</code>.</p>
+  {%- else -%}
+  <ul class="grid" id="grid">
+    {%- for f in cards -%}
+      {%- comment -%} Nom affiché : on retire le préfixe numérique et on capitalise. {%- endcomment -%}
+      {%- assign small = "de,du,des,la,le,les,l,d,un,une,et,au,aux,en,sur,par,the,of" | split: ',' -%}
+      {%- assign words = f.basename | replace: '_', '-' | split: '-' -%}
+      {%- assign lead = words[0] | plus: 0 -%}
+      {%- assign label = '' -%}
+      {%- for w in words -%}
+        {%- if forloop.first and lead > 0 -%}{%- continue -%}{%- endif -%}
+        {%- assign lw = w | downcase -%}
+        {%- if label != '' and small contains lw -%}
+          {%- assign cw = lw -%}
+        {%- else -%}
+          {%- assign cw = w | capitalize -%}
+        {%- endif -%}
+        {%- assign label = label | append: cw | append: ' ' -%}
+      {%- endfor -%}
+      {%- assign label = label | strip -%}
+      {%- if label == '' -%}{%- assign label = f.basename -%}{%- endif -%}
+      {%- assign src = f.path | relative_url | uri_escape -%}
+    <li>
+      <button class="tile" type="button" data-src="{{ src }}" data-name="{{ label | escape }}" data-index="{{ forloop.index0 }}">
+        <span class="tile-frame">
+          <img src="{{ src }}" alt="Carte {{ label | escape }}" width="1000" height="1400"
+               loading="{% if forloop.index <= 2 %}eager{% else %}lazy{% endif %}" decoding="async">
+        </span>
+        <span class="tile-name"><b>{{ forloop.index | prepend: '0' | slice: -2, 2 }}</b>{{ label }}</span>
+      </button>
+    </li>
+    {%- endfor -%}
+  </ul>
+  {%- endif -%}
+</main>
+
+<footer>
+  <div class="rule" role="presentation"><span></span><i>&#10022;</i><span></span></div>
+  <p>The White Lotus &middot; édition limitée</p>
+</footer>
+
+<script src="{{ '/assets/js/app.js' | relative_url }}" defer></script>
+</body>
+</html>

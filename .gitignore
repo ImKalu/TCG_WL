@@ -1,0 +1,11 @@
+# Images sources en pleine résolution : gardées en local, hors du dépôt.
+_originals/
+# Construction Jekyll
+_site/
+.jekyll-cache/
+.jekyll-metadata
+# Aperçu local
+preview.html
+# macOS
+.DS_Store
+.claude/

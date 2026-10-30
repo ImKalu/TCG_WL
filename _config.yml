@@ -1,0 +1,22 @@
+# ── The White Lotus · TCG ─────────────────────────────────────────────
+title: The White Lotus
+tagline: Collection de cartes
+description: "La collection complète des cartes The White Lotus. Ouvrez un booster et tentez votre chance."
+
+# Renseigné à la mise en ligne (sert aux liens absolus Open Graph).
+url: "https://USERNAME.github.io"
+baseurl: "/TCG_WL"
+
+# Nom (sans extension) de l'image utilisée comme dos commun des cartes.
+# Ce fichier vit dans cards/ mais n'est jamais listé comme une carte.
+back: dos
+
+# Fichiers ignorés par la construction du site.
+exclude:
+  - README.md
+  - preview.html
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+
+plugins: []
