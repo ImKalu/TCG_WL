@@ -4,7 +4,7 @@ tagline: Collection de cartes
 description: "La collection complète des cartes The White Lotus. Ouvrez un booster et tentez votre chance."
 
 # Renseigné à la mise en ligne (sert aux liens absolus Open Graph).
-url: "https://USERNAME.github.io"
+url: "https://imkalu.github.io"
 baseurl: "/TCG_WL"
 
 # Nom (sans extension) de l'image utilisée comme dos commun des cartes.
