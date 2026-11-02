@@ -94,7 +94,7 @@ layout: null
   <ul class="grid" id="grid">
     {%- for f in cards -%}
       {%- comment -%} Nom affiché : on retire le préfixe numérique et on capitalise. {%- endcomment -%}
-      {%- assign small = "de,du,des,la,le,les,l,d,un,une,et,au,aux,en,sur,par,the,of" | split: ',' -%}
+      {%- assign small = "de,du,des,la,le,les,l,d,un,une,et,ou,au,aux,en,sur,par,pas,the,of" | split: ',' -%}
       {%- assign words = f.basename | replace: '_', '-' | split: '-' -%}
       {%- assign lead = words[0] | plus: 0 -%}
       {%- assign label = '' -%}
