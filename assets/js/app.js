@@ -13,36 +13,70 @@
 
   var BACK = document.body.dataset.back || '';
   var BOOSTER_SIZE = 3;
-  var STORE_KEY = 'wl-tcg-collection-v1';
+  var COOLDOWN_MS = 60000;              // attente imposée entre deux boosters
+  var STORE_KEY = 'wl-tcg-collection-v2';
+  var OLD_KEY   = 'wl-tcg-collection-v1';
+  var NEXT_KEY  = 'wl-tcg-next-booster';
   var RATIO = 1000 / 1400;
 
   var tiles = Array.prototype.slice.call(grid.querySelectorAll('.tile'));
   var CARDS = tiles.map(function (t) {
-    return { src: t.dataset.src, name: t.dataset.name };
+    return {
+      src:  t.dataset.src,
+      id:   t.dataset.id || t.dataset.src,
+      cat:  t.dataset.cat || '',
+      name: t.dataset.name
+    };
   });
   if (!CARDS.length) return;
 
   var countEl = document.getElementById('count');
   var emptyEl = document.getElementById('emptyState');
+  var toolsEl = document.getElementById('tools');
+  var pickEl  = document.getElementById('catFilter');
+  var resetEl = document.getElementById('resetBtn');
+  var subEl   = document.getElementById('boosterSub');
+
+  var SUB_TEXT = subEl ? subEl.textContent : '';
+  var filter = '';                      // '' = toutes les catégories
 
   /* ── Collection conservée ────────────────────────────────────── */
   /* Le stockage peut être indisponible (navigation privée) : dans ce
      cas la collection ne vit que le temps de la visite.             */
 
-  var owned = [];
-  try {
-    var raw = window.localStorage.getItem(STORE_KEY);
-    var parsed = raw ? JSON.parse(raw) : null;
-    if (Object.prototype.toString.call(parsed) === '[object Array]') owned = parsed;
-  } catch (e) { owned = []; }
+  function readList(key) {
+    try {
+      var parsed = JSON.parse(window.localStorage.getItem(key));
+      return Object.prototype.toString.call(parsed) === '[object Array]' ? parsed : null;
+    } catch (e) { return null; }
+  }
 
-  function isOwned(card) { return owned.indexOf(card.src) !== -1; }
+  function save() {
+    try { window.localStorage.setItem(STORE_KEY, JSON.stringify(owned)); } catch (e) {}
+  }
+
+  /* Une carte est repérée par son nom de fichier, pas par son URL : la
+     ranger dans une autre catégorie ne la fait plus disparaître de la
+     collection. L'ancien format stockait des URL, converties une fois. */
+  function toId(entry) {
+    var tail = String(entry).split('/').pop().replace(/\.[^.]+$/, '');
+    try { return decodeURIComponent(tail); } catch (e) { return tail; }
+  }
+
+  var owned = readList(STORE_KEY);
+  if (!owned) {
+    var legacy = readList(OLD_KEY);
+    owned = legacy ? legacy.map(toId) : [];
+    if (legacy) save();
+  }
+
+  function isOwned(card) { return owned.indexOf(card.id) !== -1; }
 
   function addOwned(card) {
     if (isOwned(card)) return false;
-    owned.push(card.src);
-    try { window.localStorage.setItem(STORE_KEY, JSON.stringify(owned)); } catch (e) {}
-    fresh[card.src] = true;
+    owned.push(card.id);
+    save();
+    fresh[card.id] = true;
     return true;
   }
 
@@ -50,33 +84,63 @@
 
   /* ── Accueil ─────────────────────────────────────────────────── */
 
+  function matches(card) { return !filter || card.cat === filter; }
+
+  function pickLabel() {
+    var o = pickEl && pickEl.options[pickEl.selectedIndex];
+    return o ? o.textContent : filter;
+  }
+
   function paintHome() {
-    var n = 0;
+    var total = 0;   // collection entière, toutes catégories confondues
+    var shown = 0;   // cartes affichées sous le tri courant
+    var scope = 0;   // cartes existantes dans la catégorie triée
+
     tiles.forEach(function (t, i) {
+      var card = CARDS[i];
       var li = t.parentNode;
-      var own = isOwned(CARDS[i]);
-      if (own) {
-        n++;
+      var own = isOwned(card);
+      var keep = matches(card);
+
+      if (own) total++;
+      if (keep) scope++;
+
+      if (own && keep) {
+        shown++;
         if (li.hidden) {
           li.hidden = false;
-          if (fresh[CARDS[i].src]) {
+          if (fresh[card.id]) {
             li.classList.add('fresh');
-            delete fresh[CARDS[i].src];
+            delete fresh[card.id];
           }
         }
       } else {
         li.hidden = true;
+        li.classList.remove('fresh');
       }
     });
 
-    if (emptyEl) emptyEl.hidden = n > 0;
+    // La barre d'outils n'a rien à trier tant que rien n'est collectionné.
+    if (toolsEl) toolsEl.hidden = total === 0;
+    if (pickEl) pickEl.parentNode.classList.toggle('on', filter !== '');
+
+    if (emptyEl) {
+      emptyEl.hidden = shown > 0;
+      emptyEl.innerHTML = total === 0
+        ? 'Votre collection est vide.<br>Ouvrez un booster pour la commencer.'
+        : 'Aucune carte de cette catégorie<br>dans votre collection.';
+    }
+
     if (countEl) {
-      countEl.textContent = n === 0
-        ? CARDS.length + ' cartes à collectionner'
-        : (n >= CARDS.length
-            ? 'Collection complète · ' + n + ' / ' + CARDS.length
-            : 'Votre collection · ' + n + ' / ' + CARDS.length);
-      countEl.classList.toggle('full', n >= CARDS.length);
+      if (filter !== '') {
+        countEl.textContent = pickLabel() + ' · ' + shown + ' / ' + scope;
+      } else if (total === 0) {
+        countEl.textContent = CARDS.length + ' cartes à collectionner';
+      } else {
+        countEl.textContent = (total >= CARDS.length ? 'Collection complète · ' : 'Votre collection · ')
+          + total + ' / ' + CARDS.length;
+      }
+      countEl.classList.toggle('full', shown > 0 && shown >= scope);
     }
   }
 
@@ -358,8 +422,9 @@
   grid.addEventListener('click', function (e) {
     var tile = e.target.closest('.tile');
     if (!tile) return;
-    // On ne navigue qu'entre les cartes déjà obtenues.
-    var deckCards = CARDS.filter(isOwned);
+    // On ne navigue qu'entre les cartes visibles : obtenues, et
+    // conformes au tri en cours.
+    var deckCards = CARDS.filter(function (c) { return isOwned(c) && matches(c); });
     var start = 0;
     for (var k = 0; k < deckCards.length; k++) {
       if (deckCards[k].src === tile.dataset.src) { start = k; break; }
@@ -384,18 +449,116 @@
     return a;
   }
 
+  /* ── Attente entre deux boosters ─────────────────────────────── */
+  /* On retient la date du prochain droit de tirage, pas un décompte :
+     fermer l'onglet, verrouiller le téléphone ou laisser la page en
+     arrière-plan ne fausse donc rien. Le tout premier booster est
+     immédiat, et la remise à zéro rend ce droit.                     */
+
+  var boosterBtn = document.getElementById('boosterBtn');
+  var againBtn = elDone.querySelector('[data-act="again"]');
+  var ticker = null;
+  var nextAt = 0;
+  try { nextAt = parseInt(window.localStorage.getItem(NEXT_KEY), 10) || 0; } catch (e) {}
+
+  function remaining() {
+    var ms = nextAt - Date.now();
+    // Horloge reculée ou valeur aberrante : on ne bloque pas sans fin.
+    if (ms > COOLDOWN_MS) ms = 0;
+    return ms > 0 ? ms : 0;
+  }
+
+  function startCooldown() {
+    nextAt = Date.now() + COOLDOWN_MS;
+    try { window.localStorage.setItem(NEXT_KEY, String(nextAt)); } catch (e) {}
+    paintCooldown();
+  }
+
+  function clearCooldown() {
+    nextAt = 0;
+    try { window.localStorage.removeItem(NEXT_KEY); } catch (e) {}
+    paintCooldown();
+  }
+
+  function paintCooldown() {
+    var ms = remaining();
+    var sec = Math.ceil(ms / 1000);
+
+    if (boosterBtn) boosterBtn.disabled = ms > 0;
+    if (subEl) {
+      subEl.textContent = ms > 0 ? 'Prochain booster dans ' + sec + ' s' : SUB_TEXT;
+      subEl.classList.toggle('cooling', ms > 0);
+    }
+    if (againBtn) {
+      againBtn.disabled = ms > 0;
+      againBtn.textContent = ms > 0 ? 'Encore ' + sec + ' s' : 'Un autre booster';
+    }
+
+    // Un seul minuteur, qui ne tourne que pendant l'attente.
+    if (ms > 0 && !ticker) ticker = setInterval(paintCooldown, 500);
+    else if (ms <= 0 && ticker) { clearInterval(ticker); ticker = null; }
+  }
+
   function openBooster() {
+    if (remaining() > 0) { paintCooldown(); return; }
     // On tire d'abord parmi les cartes manquantes : la collection avance
     // à chaque booster. Une fois complète, on repioche au hasard.
     var pool = shuffle(CARDS.filter(function (c) { return !isOwned(c); }));
     if (pool.length < BOOSTER_SIZE) {
       pool = pool.concat(shuffle(CARDS.filter(isOwned)));
     }
+    startCooldown();
     openViewer(pool.slice(0, Math.min(BOOSTER_SIZE, CARDS.length)), 0, true);
   }
 
-  var boosterBtn = document.getElementById('boosterBtn');
   if (boosterBtn) boosterBtn.addEventListener('click', openBooster);
+
+  // Au retour sur l'onglet, le décompte peut avoir expiré en coulisse.
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) paintCooldown();
+  });
+
+  /* ── Tri par catégorie ───────────────────────────────────────── */
+
+  if (pickEl) {
+    pickEl.addEventListener('change', function () {
+      filter = pickEl.value || '';
+      paintHome();
+    });
+  }
+
+  /* ── Remise à zéro ───────────────────────────────────────────── */
+  /* Deux appuis plutôt qu'une fenêtre système : le premier arme le
+     bouton, le second efface. Le bouton se désarme seul.             */
+
+  var armTimer = null;
+
+  function disarm() {
+    if (!resetEl) return;
+    clearTimeout(armTimer);
+    armTimer = null;
+    resetEl.classList.remove('arm');
+    resetEl.textContent = 'Réinitialiser';
+  }
+
+  if (resetEl) {
+    resetEl.addEventListener('click', function () {
+      if (armTimer === null) {
+        resetEl.classList.add('arm');
+        resetEl.textContent = 'Confirmer ?';
+        armTimer = setTimeout(disarm, 4000);
+        return;
+      }
+      disarm();
+      owned = [];
+      fresh = {};
+      save();
+      filter = '';
+      if (pickEl) pickEl.value = '';
+      clearCooldown();
+      paintHome();
+    });
+  }
 
   document.addEventListener('keydown', function (e) {
     if (!open) return;
@@ -420,4 +583,5 @@
   if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
 
   paintHome();
+  paintCooldown();
 })();

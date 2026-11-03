@@ -16,6 +16,10 @@ layout: null
   Déposer une image dans ce dossier suffit à la faire apparaître.
   Le préfixe « 01- », « 02- »… donne l'ordre, le reste du nom de
   fichier donne le nom affiché. Le dos commun ({{ site.back }}) est exclu.
+  Le sous-dossier donne la catégorie : cards/personnage/, cards/objet/,
+  cards/dresseur/. Un fichier posé directement dans cards/ n'a pas de
+  catégorie et n'apparaît que dans « Toutes les cartes ». Créer un
+  nouveau sous-dossier ajoute une entrée au tri, sans toucher au code.
   ─────────────────────────────────────────────────────────────────────
 {%- endcomment -%}
 
@@ -25,6 +29,19 @@ layout: null
       | where_exp: "f", "image_ext contains f.extname"
       | where_exp: "f", "f.basename != site.back"
       | sort: "name" -%}
+
+{%- comment -%} Catégories réellement présentes, dans l'ordre alphabétique. {%- endcomment -%}
+{%- assign catlist = ',' -%}
+{%- for f in cards -%}
+  {%- assign seg = f.path | split: '/cards/' | last | split: '/' -%}
+  {%- if seg.size > 1 -%}
+    {%- assign probe = ',' | append: seg[0] | append: ',' -%}
+    {%- unless catlist contains probe -%}
+      {%- assign catlist = catlist | append: seg[0] | append: ',' -%}
+    {%- endunless -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- assign cats = catlist | split: ',' | sort -%}
 
 {%- assign back_url = '' -%}
 {%- for f in site.static_files -%}
@@ -82,8 +99,22 @@ layout: null
   <button class="booster-btn" id="boosterBtn" type="button">
     <span class="booster-shine" aria-hidden="true"></span>
     <span class="booster-label">Ouvrir un booster</span>
-    <span class="booster-sub">3 cartes au hasard</span>
+    <span class="booster-sub" id="boosterSub">3 cartes au hasard</span>
   </button>
+
+  {%- comment -%} Révélée par le script dès qu'une carte est collectionnée. {%- endcomment -%}
+  <div class="tools" id="tools" hidden>
+    <div class="tool tool-pick">
+      <select id="catFilter" aria-label="Trier les cartes par catégorie">
+        <option value="">Toutes</option>
+        {%- for c in cats -%}{%- if c != '' %}
+        <option value="{{ c }}">{{ c | capitalize }}</option>
+        {%- endif -%}{%- endfor %}
+      </select>
+      <span class="tool-chev" aria-hidden="true">&#9662;</span>
+    </div>
+    <button class="tool tool-reset" id="resetBtn" type="button">Réinitialiser</button>
+  </div>
 </header>
 
 <main>
@@ -111,8 +142,11 @@ layout: null
       {%- assign label = label | strip -%}
       {%- if label == '' -%}{%- assign label = f.basename -%}{%- endif -%}
       {%- assign src = f.path | relative_url | uri_escape -%}
-    <li hidden>
-      <button class="tile" type="button" data-src="{{ src }}" data-name="{{ label | escape }}" data-index="{{ forloop.index0 }}">
+      {%- comment -%} La catégorie est le sous-dossier ; vide s'il n'y en a pas. {%- endcomment -%}
+      {%- assign seg = f.path | split: '/cards/' | last | split: '/' -%}
+      {%- if seg.size > 1 -%}{%- assign cat = seg[0] -%}{%- else -%}{%- assign cat = '' -%}{%- endif -%}
+    <li hidden data-cat="{{ cat }}">
+      <button class="tile" type="button" data-src="{{ src }}" data-id="{{ f.basename }}" data-cat="{{ cat }}" data-name="{{ label | escape }}" data-index="{{ forloop.index0 }}">
         <span class="tile-frame">
           <img src="{{ src }}" alt="Carte {{ label | escape }}" width="1000" height="1400"
                loading="lazy" decoding="async">

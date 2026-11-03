@@ -120,6 +120,16 @@ body.is-locked{ overflow:hidden; }
   transition:transform .14s ease, border-color .25s ease, box-shadow .25s ease;
 }
 .booster-btn:active{ transform:scale(.978); }
+/* Pendant le délai entre deux boosters : bouton éteint, reflet coupé. */
+.booster-btn[disabled]{
+  cursor:default;
+  border-color:rgba(212,175,55,.18);
+  box-shadow:0 6px 22px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.04);
+}
+.booster-btn[disabled]:active{ transform:none; }
+.booster-btn[disabled] .booster-label{ color:var(--blanc-doux); opacity:.55; }
+.booster-btn[disabled] .booster-shine{ display:none; }
+.booster-sub.cooling{ color:var(--or); opacity:.9; }
 @media (hover:hover){
   .booster-btn:hover{
     border-color:var(--or);
@@ -156,6 +166,94 @@ body.is-locked{ overflow:hidden; }
 @keyframes sweep{
   0%,62%  { transform:translateX(-120%); }
   86%,100%{ transform:translateX(120%); }
+}
+
+/* ── Barre d'outils : tri par catégorie et remise à zéro ─────────── */
+
+.tools{
+  display:flex;
+  gap:10px;
+  width:min(360px, 100%);
+  margin:12px auto 0;
+}
+
+.tool{
+  flex:1 1 0;
+  min-width:0;
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:38px;
+  padding:0 12px;
+  border:1px solid rgba(212,175,55,.26);
+  border-radius:3px;
+  background:rgba(21,21,28,.72);
+  color:var(--blanc-doux);
+  font-family:inherit;
+  font-size:10.5px;
+  letter-spacing:.2em;
+  text-indent:.2em;
+  text-transform:uppercase;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition:border-color .22s ease, color .22s ease;
+}
+@media (hover:hover){
+  .tool:hover{ border-color:rgba(212,175,55,.6); color:var(--blanc); }
+}
+.tool:active{ border-color:var(--or); }
+
+/* Le tri est un <select> natif : sélecteur du système sur téléphone,
+   aucune dépendance, utilisable au clavier. Il recouvre toute la
+   pastille et c'est lui qui affiche la valeur courante.              */
+.tool-pick select{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  padding:0 24px 0 10px;
+  border:0;
+  background:transparent;
+  color:inherit;
+  font:inherit;
+  letter-spacing:inherit;
+  text-transform:inherit;
+  text-align:center;
+  text-align-last:center;
+  -webkit-appearance:none;
+  appearance:none;
+  cursor:pointer;
+}
+.tool-pick select:focus-visible{ outline:1px solid var(--or); outline-offset:2px; }
+/* Le menu ouvert est dessiné par le système : on lui rend une casse
+   et un interlettrage normaux pour rester lisible.                   */
+.tool-pick select option{
+  background:var(--noir-2);
+  color:var(--blanc);
+  letter-spacing:normal;
+  text-transform:none;
+}
+
+.tool-chev{
+  position:absolute;
+  right:10px;
+  font-size:9px;
+  color:var(--or);
+  opacity:.75;
+  pointer-events:none;
+}
+
+/* Un tri actif se signale : la collection affichée n'est plus entière. */
+.tool-pick.on{
+  border-color:rgba(212,175,55,.62);
+  color:var(--blanc);
+  background:rgba(212,175,55,.08);
+}
+
+/* Premier appui : la remise à zéro demande confirmation. */
+.tool-reset.arm{
+  border-color:var(--or);
+  color:var(--or-clair);
+  background:rgba(212,175,55,.1);
 }
 
 /* ── Grille ──────────────────────────────────────────────────────── */
@@ -487,6 +585,12 @@ footer p{
   -webkit-tap-highlight-color:transparent;
 }
 .booster-done button:active{ transform:scale(.96); }
+.booster-done button[disabled]{
+  opacity:.5;
+  cursor:default;
+  color:var(--blanc-doux);
+}
+.booster-done button[disabled]:active{ transform:none; }
 
 /* ── Préférences système ─────────────────────────────────────────── */
 

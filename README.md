@@ -11,29 +11,54 @@ fois rejoint la collection et reste affichée sur l'accueil. Le tirage pioche
 d'abord parmi les cartes manquantes, donc chaque booster fait avancer le deck
 jusqu'à ce qu'il soit complet.
 
-La collection est conservée par le navigateur (`localStorage`, clé
-`wl-tcg-collection-v1`). Elle est donc propre à chaque téléphone et à chaque
-navigateur : deux personnes qui ouvrent le lien construisent deux decks
-distincts. Pour repartir de zéro, vider les données du site dans les réglages
-du navigateur, ou en console :
+Un **délai d'une minute** sépare deux boosters : le bouton s'éteint et affiche
+le temps restant. Le tout premier booster est immédiat. Le délai est retenu
+comme une date d'échéance et non comme un décompte, donc fermer l'onglet ou
+verrouiller le téléphone ne permet pas de tricher.
 
-```js
-localStorage.removeItem('wl-tcg-collection-v1')
-```
+Dès qu'une carte est collectionnée, une barre apparaît sous le bouton :
+
+* **Tri** — un menu déroulant limite l'affichage à une catégorie. Le compteur
+  suit (« Personnage · 4 / 12 ») et le plein écran ne fait alors défiler que
+  les cartes de cette catégorie. « Toutes » est le choix par défaut, rétabli à
+  chaque chargement.
+* **Réinitialiser** — vide la collection et rend le droit au booster
+  immédiatement. Deux appuis sont demandés : le premier arme le bouton
+  (« Confirmer ? »), le second efface.
+
+La collection est conservée par le navigateur (`localStorage`, clés
+`wl-tcg-collection-v2` et `wl-tcg-next-booster`). Elle est donc propre à chaque
+téléphone et à chaque navigateur : deux personnes qui ouvrent le lien
+construisent deux decks distincts. Le bouton **Réinitialiser** suffit à
+repartir de zéro.
+
+Une carte est repérée par son nom de fichier, pas par son URL : la déplacer
+d'une catégorie à l'autre ne la fait pas disparaître des collections déjà
+constituées. Les collections au format précédent, qui stockaient des URL, sont
+converties automatiquement au premier chargement.
 
 En navigation privée, le stockage peut être refusé : la collection ne dure
 alors que le temps de la visite.
 
 ## Ajouter une carte
 
-Déposez l'image dans `cards/`. C'est tout : le site la liste automatiquement,
-il n'y a aucun code à modifier et aucune liste à tenir à jour.
+Déposez l'image dans le sous-dossier de sa catégorie. C'est tout : le site la
+liste automatiquement, il n'y a aucun code à modifier et aucune liste à tenir
+à jour.
 
 ```
-cards/12-nom-de-la-carte.jpg
-      │  └─ nom affiché : « Nom de la Carte »
-      └──── préfixe numérique : donne l'ordre d'affichage
+cards/personnage/17-nom-de-la-carte.jpg
+      │          │  └─ nom affiché : « Nom de la Carte »
+      │          └──── préfixe numérique : donne l'ordre d'affichage
+      └─────────────── catégorie : alimente le menu de tri
 ```
+
+* **La catégorie** est le nom du sous-dossier, capitalisé pour l'affichage.
+  Les trois dossiers existants sont `personnage/`, `objet/` et `dresseur/`.
+  **Créer un nouveau sous-dossier ajoute une entrée au menu de tri**, sans
+  toucher au code. Changer une carte de catégorie, c'est déplacer son fichier.
+* Une image posée directement dans `cards/` reste valable : elle n'a pas de
+  catégorie et n'apparaît que sous « Toutes ».
 
 * **L'ordre** vient du préfixe `01-`, `02-`, `03-`… Pour glisser une carte
   entre deux autres, renommez simplement les fichiers.
