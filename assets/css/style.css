@@ -203,6 +203,7 @@ body.is-locked{ overflow:hidden; }
   .tool:hover{ border-color:rgba(212,175,55,.6); color:var(--blanc); }
 }
 .tool:active{ border-color:var(--or); }
+.tool[hidden]{ display:none; }
 
 /* Le tri est un <select> natif : sélecteur du système sur téléphone,
    aucune dépendance, utilisable au clavier. Il recouvre toute la
@@ -244,6 +245,27 @@ body.is-locked{ overflow:hidden; }
 
 /* Un tri actif se signale : la collection affichée n'est plus entière. */
 .tool-pick.on{
+  border-color:rgba(212,175,55,.62);
+  color:var(--blanc);
+  background:rgba(212,175,55,.08);
+}
+
+/* Le bouton d'affichage est une pastille carrée : deux pastilles de
+   texte pleine largeur plus une icône tiennent sur un écran étroit,
+   trois libellés non.                                               */
+.tool-view{
+  flex:0 0 42px;
+  padding:0;
+}
+.tool-view .ico{
+  width:17px; height:17px;
+  display:block;
+  fill:currentColor;
+}
+/* L'icône montre l'affichage que l'on obtiendra, pas l'affichage courant. */
+body:not(.view-flow) .ico-grid{ display:none; }
+body.view-flow .ico-flow{ display:none; }
+body.view-flow .tool-view{
   border-color:rgba(212,175,55,.62);
   color:var(--blanc);
   background:rgba(212,175,55,.08);
@@ -332,6 +354,31 @@ main{ padding:0 14px 10px; }
   color:var(--or);
   opacity:.8;
 }
+.tile-label{ min-width:0; }
+
+/* ── Cases encore à gagner ───────────────────────────────────────── */
+/* Elles montrent le dos commun, qui est déjà presque noir : l'assombrir
+   donnerait un cadre vide, pas une carte retournée. C'est donc le liseré
+   doré, éteint ici, et le nom masqué qui les distinguent des cartes
+   gagnées.                                                            */
+
+.tile.is-locked{ cursor:default; }
+.tile.is-locked:active{ transform:none; }
+@media (hover:hover){ .tile.is-locked:hover{ transform:none; } }
+
+.tile.is-locked .tile-frame{
+  box-shadow:
+    0 0 0 1px rgba(212,175,55,.12),
+    0 6px 16px rgba(0,0,0,.5);
+}
+.tile.is-locked .tile-frame img{ opacity:.85; }
+.tile.is-locked .tile-frame::after{ background:none; }
+.tile.is-locked .tile-name{ color:var(--blanc-doux); }
+.tile.is-locked .tile-name b{ opacity:.45; }
+.tile.is-locked .tile-label{
+  letter-spacing:.22em;
+  opacity:.4;
+}
 
 .empty{
   max-width:520px;
@@ -345,6 +392,59 @@ main{ padding:0 14px 10px; }
   background:var(--encre);
   padding:2px 6px;
   border-radius:3px;
+}
+
+/* ── Affichage carrousel ─────────────────────────────────────────── */
+/* Mêmes éléments que la grille, remis en page : basculer ne reconstruit
+   rien. L'inclinaison de chaque carte est donnée par --d (écart signé au
+   centre) et --a (le même, sans signe), que le script met à jour au
+   défilement. La position réelle des cartes ne bouge pas, seul leur
+   dessin : l'accrochage du défilement reste donc stable.             */
+
+body.view-flow main{ padding-left:0; padding-right:0; }
+
+body.view-flow .grid{
+  --fw:min(66vw, 290px);
+  display:flex;
+  max-width:none;
+  gap:0;
+  padding:14px 0 10px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+body.view-flow .grid::-webkit-scrollbar{ display:none; }
+
+/* Deux cales qui permettent à la première et à la dernière carte
+   d'atteindre le centre de l'écran.                                  */
+body.view-flow .grid::before,
+body.view-flow .grid::after{
+  content:"";
+  flex:0 0 calc(50% - var(--fw) / 2);
+}
+
+body.view-flow .grid li{
+  flex:0 0 var(--fw);
+  padding:0 9px;
+  scroll-snap-align:center;
+  transform:
+    perspective(1100px)
+    rotateY(calc(var(--d, 0) * -24deg))
+    translateZ(calc(var(--a, 0) * -58px))
+    scale(calc(1 - var(--a, 0) * .05));
+  opacity:calc(1 - var(--a, 0) * .3);
+  will-change:transform;
+}
+body.view-flow .grid li.fresh{ animation:none; }
+body.view-flow .tile:active{ transform:none; }
+@media (hover:hover){ body.view-flow .tile:hover{ transform:none; } }
+
+@media (min-width:620px){ body.view-flow .grid{ --fw:min(44vw, 330px); } }
+
+@media (prefers-reduced-motion:reduce){
+  body.view-flow .grid li{ transform:none; opacity:1; }
 }
 
 /* ── Pied ────────────────────────────────────────────────────────── */
@@ -401,6 +501,27 @@ footer p{
   font-variant-numeric:tabular-nums;
 }
 .v-count em{ font-style:normal; color:var(--blanc-doux); opacity:.5; }
+
+.v-acts{
+  display:flex;
+  align-items:center;
+  gap:9px;
+}
+
+/* Enregistrer le recto de la carte affichée */
+.v-act{
+  width:38px; height:38px;
+  display:grid; place-items:center;
+  border:1px solid rgba(212,175,55,.35);
+  border-radius:50%;
+  background:rgba(255,255,255,.04);
+  color:var(--or-clair);
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.v-act[hidden]{ display:none; }
+.v-act:active{ transform:scale(.92); }
+.v-act svg{ width:18px; height:18px; display:block; }
 
 .v-close{
   width:38px; height:38px;

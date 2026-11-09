@@ -70,6 +70,18 @@ layout: null
 
 <link rel="icon" href="{{ '/assets/favicon.png' | relative_url }}" type="image/png">
 <link rel="apple-touch-icon" href="{{ '/assets/favicon.png' | relative_url }}">
+
+{%- comment -%}
+  Installation sur l'écran d'accueil. Le manifeste sert Android ; iOS
+  lit encore ses propres balises et l'apple-touch-icon ci-dessus.
+  « black-translucent » fait passer la page sous la barre d'état : les
+  marges en env(safe-area-inset-*) sont déjà prévues pour ça.
+{%- endcomment -%}
+<link rel="manifest" href="{{ '/manifest.webmanifest' | relative_url }}">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="White Lotus">
 {%- if back_url != "" %}
 <link rel="preload" as="image" href="{{ back_url }}">{% endif %}
 {%- comment -%}
@@ -102,8 +114,25 @@ layout: null
     <span class="booster-sub" id="boosterSub">3 cartes au hasard</span>
   </button>
 
-  {%- comment -%} Révélée par le script dès qu'une carte est collectionnée. {%- endcomment -%}
-  <div class="tools" id="tools" hidden>
+  {%- comment -%}
+    Visible dès le départ : l'album se parcourt avant d'avoir gagné quoi
+    que ce soit. Seule la remise à zéro attend une première carte.
+  {%- endcomment -%}
+  <div class="tools" id="tools">
+    <button class="tool tool-view" id="viewBtn" type="button"
+            aria-label="Afficher en carrousel" title="Changer l'affichage">
+      <svg class="ico ico-grid" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+        <rect x="2.6" y="2.6" width="6.3" height="6.3" rx="1.2"/>
+        <rect x="11.1" y="2.6" width="6.3" height="6.3" rx="1.2"/>
+        <rect x="2.6" y="11.1" width="6.3" height="6.3" rx="1.2"/>
+        <rect x="11.1" y="11.1" width="6.3" height="6.3" rx="1.2"/>
+      </svg>
+      <svg class="ico ico-flow" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+        <rect x="7.1" y="2.8" width="5.8" height="14.4" rx="1.4"/>
+        <rect x="1.5" y="5.6" width="3.6" height="8.8" rx="1.2" opacity=".5"/>
+        <rect x="14.9" y="5.6" width="3.6" height="8.8" rx="1.2" opacity=".5"/>
+      </svg>
+    </button>
     <div class="tool tool-pick">
       <select id="catFilter" aria-label="Trier les cartes par catégorie">
         <option value="">Toutes</option>
@@ -121,7 +150,6 @@ layout: null
   {%- if cards.size == 0 -%}
   <p class="empty">Aucune carte pour le moment. Déposez des images dans le dossier <code>cards/</code>.</p>
   {%- else -%}
-  <p class="empty" id="emptyState" hidden>Votre collection est vide.<br>Ouvrez un booster pour la commencer.</p>
   <ul class="grid" id="grid">
     {%- for f in cards -%}
       {%- comment -%} Nom affiché : on retire le préfixe numérique et on capitalise. {%- endcomment -%}
@@ -145,13 +173,21 @@ layout: null
       {%- comment -%} La catégorie est le sous-dossier ; vide s'il n'y en a pas. {%- endcomment -%}
       {%- assign seg = f.path | split: '/cards/' | last | split: '/' -%}
       {%- if seg.size > 1 -%}{%- assign cat = seg[0] -%}{%- else -%}{%- assign cat = '' -%}{%- endif -%}
-    <li hidden data-cat="{{ cat }}">
-      <button class="tile" type="button" data-src="{{ src }}" data-id="{{ f.basename }}" data-cat="{{ cat }}" data-name="{{ label | escape }}" data-index="{{ forloop.index0 }}">
+    {%- comment -%}
+      La case part verrouillée : elle montre le dos commun, déjà préchargé,
+      si bien qu'un seul fichier sert les vingt et quelques cases et qu'une
+      première visite ne télécharge aucune carte. Le script remplace
+      l'image et le nom dès que la carte est gagnée.
+    {%- endcomment -%}
+    <li data-cat="{{ cat }}">
+      <button class="tile is-locked" type="button" disabled
+              data-src="{{ src }}" data-id="{{ f.basename }}" data-cat="{{ cat }}"
+              data-name="{{ label | escape }}" data-index="{{ forloop.index0 }}">
         <span class="tile-frame">
-          <img src="{{ src }}" alt="Carte {{ label | escape }}" width="1000" height="1400"
+          <img src="{{ back_url }}" alt="" width="1000" height="1400"
                loading="lazy" decoding="async">
         </span>
-        <span class="tile-name"><b>{{ forloop.index | prepend: '0' | slice: -2, 2 }}</b>{{ label }}</span>
+        <span class="tile-name"><b>{{ forloop.index | prepend: '0' | slice: -2, 2 }}</b><span class="tile-label">???</span></span>
       </button>
     </li>
     {%- endfor -%}

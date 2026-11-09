@@ -6,6 +6,7 @@ _site/
 .jekyll-metadata
 # Aperçu local
 preview.html
+preview.webmanifest
 # macOS
 .DS_Store
 .claude/

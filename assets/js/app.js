@@ -1,8 +1,9 @@
 /* ──────────────────────────────────────────────────────────────────
    The White Lotus · TCG
-   L'accueil ne montre que les cartes déjà obtenues. On les gagne en
-   ouvrant des boosters de 3 cartes : une carte révélée rejoint la
-   collection, conservée dans le navigateur.
+   L'accueil est un album : toutes les cases y figurent, celles qu'on
+   n'a pas encore montrant le dos commun. On gagne les cartes en ouvrant
+   des boosters de 3 : une carte révélée rejoint la collection,
+   conservée dans le navigateur. Deux affichages, grille ou carrousel.
    Vanilla, aucune dépendance.
    ────────────────────────────────────────────────────────────────── */
 (function () {
@@ -17,6 +18,8 @@
   var STORE_KEY = 'wl-tcg-collection-v2';
   var OLD_KEY   = 'wl-tcg-collection-v1';
   var NEXT_KEY  = 'wl-tcg-next-booster';
+  var VIEW_KEY  = 'wl-tcg-view';
+  var LOCKED    = '???';                // nom d'une case pas encore gagnée
   var RATIO = 1000 / 1400;
 
   var tiles = Array.prototype.slice.call(grid.querySelectorAll('.tile'));
@@ -30,9 +33,10 @@
   });
   if (!CARDS.length) return;
 
+  var items   = tiles.map(function (t) { return t.parentNode; });
   var countEl = document.getElementById('count');
-  var emptyEl = document.getElementById('emptyState');
   var toolsEl = document.getElementById('tools');
+  var viewBtn = document.getElementById('viewBtn');
   var pickEl  = document.getElementById('catFilter');
   var resetEl = document.getElementById('resetBtn');
   var subEl   = document.getElementById('boosterSub');
@@ -91,45 +95,64 @@
     return o ? o.textContent : filter;
   }
 
+  /* Une case est soit gagnée — elle porte alors son image et son nom —
+     soit verrouillée sur le dos commun. Le dos est le même fichier pour
+     toutes : une case fermée ne coûte aucun téléchargement.           */
+
+  function unlock(t, card) {
+    var img = t.querySelector('.tile-frame img');
+    var lab = t.querySelector('.tile-label');
+    if (img && img.getAttribute('src') !== card.src) {
+      img.src = card.src;
+      img.alt = 'Carte ' + card.name;
+    }
+    if (lab) lab.textContent = card.name;
+    t.classList.remove('is-locked');
+    t.disabled = false;
+  }
+
+  function lock(t) {
+    var img = t.querySelector('.tile-frame img');
+    var lab = t.querySelector('.tile-label');
+    if (img && BACK) { img.src = BACK; img.alt = ''; }
+    if (lab) lab.textContent = LOCKED;
+    t.classList.add('is-locked');
+    t.disabled = true;
+  }
+
   function paintHome() {
     var total = 0;   // collection entière, toutes catégories confondues
-    var shown = 0;   // cartes affichées sous le tri courant
+    var shown = 0;   // cartes obtenues sous le tri courant
     var scope = 0;   // cartes existantes dans la catégorie triée
 
     tiles.forEach(function (t, i) {
       var card = CARDS[i];
-      var li = t.parentNode;
+      var li = items[i];
       var own = isOwned(card);
       var keep = matches(card);
+      var wasLocked = t.classList.contains('is-locked');
 
       if (own) total++;
-      if (keep) scope++;
+      if (keep) { scope++; if (own) shown++; }
 
-      if (own && keep) {
-        shown++;
-        if (li.hidden) {
-          li.hidden = false;
-          if (fresh[card.id]) {
-            li.classList.add('fresh');
-            delete fresh[card.id];
-          }
+      // Le tri retire la case ; sans tri, tout l'album reste affiché.
+      li.hidden = !keep;
+
+      if (own && wasLocked) {
+        unlock(t, card);
+        if (fresh[card.id]) {
+          li.classList.add('fresh');
+          delete fresh[card.id];
         }
-      } else {
-        li.hidden = true;
+      } else if (!own && !wasLocked) {
+        lock(t);                       // après une remise à zéro
         li.classList.remove('fresh');
       }
     });
 
-    // La barre d'outils n'a rien à trier tant que rien n'est collectionné.
-    if (toolsEl) toolsEl.hidden = total === 0;
+    // Rien à remettre à zéro tant que rien n'est collectionné.
+    if (resetEl) resetEl.hidden = total === 0;
     if (pickEl) pickEl.parentNode.classList.toggle('on', filter !== '');
-
-    if (emptyEl) {
-      emptyEl.hidden = shown > 0;
-      emptyEl.innerHTML = total === 0
-        ? 'Votre collection est vide.<br>Ouvrez un booster pour la commencer.'
-        : 'Aucune carte de cette catégorie<br>dans votre collection.';
-    }
 
     if (countEl) {
       if (filter !== '') {
@@ -142,6 +165,8 @@
       }
       countEl.classList.toggle('full', shown > 0 && shown >= scope);
     }
+
+    refreshFlow();   // le tri change la file : il faut la remesurer
   }
 
   /* ── Construction du lecteur ─────────────────────────────────── */
@@ -156,7 +181,16 @@
   viewer.innerHTML =
     '<div class="v-top">' +
       '<span class="v-count" id="vCount"></span>' +
-      '<button class="v-close" id="vClose" type="button" aria-label="Fermer">&#10005;</button>' +
+      '<div class="v-acts">' +
+        '<button class="v-act" id="vSave" type="button" aria-label="Enregistrer la carte" title="Enregistrer la carte">' +
+          '<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false" fill="none" ' +
+               'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+            '<path d="M10 2.8v8.4m0 0 3.1-3.1M10 11.2 6.9 8.1"/>' +
+            '<path d="M3.4 13.2v2a1.8 1.8 0 0 0 1.8 1.8h9.6a1.8 1.8 0 0 0 1.8-1.8v-2"/>' +
+          '</svg>' +
+        '</button>' +
+        '<button class="v-close" id="vClose" type="button" aria-label="Fermer">&#10005;</button>' +
+      '</div>' +
     '</div>' +
     '<div class="deck-wrap"><div class="deck" id="deck"></div></div>' +
     '<div class="v-bottom">' +
@@ -177,6 +211,7 @@
   var elHint  = viewer.querySelector('#vHint');
   var elDots  = viewer.querySelector('#vDots');
   var elDone  = viewer.querySelector('#vDone');
+  var saveBtn = viewer.querySelector('#vSave');
 
   var list = [];
   var index = 0;
@@ -297,6 +332,10 @@
   function paint() {
     var card = list[index];
     var shown = !booster || revealed[index];
+
+    // On n'enregistre que le recto, et seulement une carte retournée.
+    if (saveBtn) saveBtn.hidden = !shown;
+    if (shown) warmBlob(card);
 
     elName.textContent = shown ? card.name : ' ';
     elCount.innerHTML = booster
@@ -441,6 +480,64 @@
     else closeViewer();
   });
 
+  /* ── Enregistrer le recto ────────────────────────────────────── */
+  /* Sur iPhone, « Enregistrer dans Photos » n'existe que dans la feuille
+     de partage du système : on lui passe donc l'image en fichier. Elle
+     est récupérée dès l'affichage de la carte, pour que le partage
+     s'ouvre dans le prolongement immédiat du doigt — une attente ferait
+     perdre l'autorisation attachée au geste. Partout ailleurs, on
+     retombe sur un téléchargement ordinaire.                          */
+
+  var blobId = null;
+  var blobFile = null;
+
+  function fileNameFor(card) {
+    var ext = card.src.split('?')[0].split('.').pop().toLowerCase();
+    if (!ext || ext.length > 4) ext = 'jpg';
+    var base = ('The White Lotus - ' + (card.name || 'carte'))
+      .replace(/[\\/:*?"<>|]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return base + '.' + ext;
+  }
+
+  function warmBlob(card) {
+    if (!card || !window.fetch || blobId === card.id) return;
+    blobId = card.id;
+    blobFile = null;
+    var wanted = card.id;
+    fetch(card.src, { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.blob() : null; })
+      .then(function (b) { if (b && blobId === wanted) blobFile = b; })
+      .catch(function () {});
+  }
+
+  function saveCurrent() {
+    var card = list[index];
+    if (!card || (booster && !revealed[index])) return;
+    var name = fileNameFor(card);
+
+    if (blobFile && blobId === card.id && navigator.canShare && window.File) {
+      try {
+        var f = new File([blobFile], name, { type: blobFile.type || 'image/jpeg' });
+        if (navigator.canShare({ files: [f] })) {
+          navigator.share({ files: [f] }).catch(function () {});
+          return;
+        }
+      } catch (e) {}
+    }
+
+    var a = document.createElement('a');
+    a.href = card.src;
+    a.download = name;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  if (saveBtn) saveBtn.addEventListener('click', saveCurrent);
+
   function shuffle(a) {
     for (var i = a.length - 1; i > 0; i--) {
       var j = Math.floor(Math.random() * (i + 1));
@@ -518,6 +615,102 @@
     if (!document.hidden) paintCooldown();
   });
 
+  /* ── Deux affichages : grille et carrousel ───────────────────── */
+  /* Les deux vues partagent les mêmes éléments : basculer ne change
+     qu'une classe sur <body>, rien n'est reconstruit. Au défilement on
+     ne relit que la position du centre ; celles des cartes sont
+     mesurées une fois et gardées, pour n'imposer aucun calcul de mise
+     en page à chaque image.                                           */
+
+  var raf = window.requestAnimationFrame
+    ? window.requestAnimationFrame.bind(window)
+    : function (f) { return setTimeout(f, 16); };
+
+  var flowOn = false;
+  try { flowOn = window.localStorage.getItem(VIEW_KEY) === 'flow'; } catch (e) {}
+
+  var geom = null;        // position de chaque carte, mesurée une fois
+  var flowPending = 0;
+
+  function measureFlow() {
+    geom = [];
+    for (var i = 0; i < items.length; i++) {
+      var li = items[i];
+      if (li.hidden) continue;
+      geom.push({
+        li: li,
+        c: li.offsetLeft + li.offsetWidth / 2,
+        w: li.offsetWidth || 1
+      });
+    }
+  }
+
+  function paintFlow() {
+    flowPending = 0;
+    if (!geom) return;
+    var mid = grid.scrollLeft + grid.clientWidth / 2;
+    for (var i = 0; i < geom.length; i++) {
+      var g = geom[i];
+      var d = (g.c - mid) / g.w;         // écart au centre, en largeurs de carte
+      if (d < -2.2) d = -2.2; else if (d > 2.2) d = 2.2;
+      var a = d < 0 ? -d : d;
+      g.li.style.setProperty('--d', d.toFixed(3));
+      g.li.style.setProperty('--a', a.toFixed(3));
+      g.li.style.zIndex = String(40 - Math.round(a * 10));
+    }
+  }
+
+  function refreshFlow() {
+    if (!flowOn || !document.body.classList.contains('view-flow')) return;
+    measureFlow();
+    paintFlow();
+  }
+
+  // En arrivant sur le carrousel, on se place sur la première carte
+  // possédée plutôt que sur une case fermée.
+  function centreFirstOwned() {
+    if (!geom || !geom.length) return;
+    var target = geom[0];
+    for (var i = 0; i < geom.length; i++) {
+      var t = geom[i].li.querySelector('.tile');
+      if (t && !t.classList.contains('is-locked')) { target = geom[i]; break; }
+    }
+    grid.scrollLeft = Math.max(0, target.c - grid.clientWidth / 2);
+  }
+
+  function setView(flow, remember) {
+    flowOn = !!flow;
+    document.body.classList.toggle('view-flow', flowOn);
+    if (viewBtn) {
+      viewBtn.setAttribute('aria-label', flowOn ? 'Afficher en grille' : 'Afficher en carrousel');
+    }
+    if (remember) {
+      try { window.localStorage.setItem(VIEW_KEY, flowOn ? 'flow' : 'grid'); } catch (e) {}
+    }
+
+    if (flowOn) {
+      measureFlow();
+      centreFirstOwned();
+      paintFlow();
+    } else {
+      geom = null;
+      for (var i = 0; i < items.length; i++) {
+        items[i].style.removeProperty('--d');
+        items[i].style.removeProperty('--a');
+        items[i].style.zIndex = '';
+      }
+    }
+  }
+
+  grid.addEventListener('scroll', function () {
+    if (!flowOn || flowPending) return;
+    flowPending = raf(paintFlow);
+  }, { passive: true });
+
+  if (viewBtn) {
+    viewBtn.addEventListener('click', function () { setView(!flowOn, true); });
+  }
+
   /* ── Tri par catégorie ───────────────────────────────────────── */
 
   if (pickEl) {
@@ -573,6 +766,7 @@
   });
 
   function onResize() {
+    refreshFlow();
     if (!open) return;
     deck.classList.remove('animate');
     deck.style.setProperty('--dx', 0);
@@ -583,5 +777,6 @@
   if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
 
   paintHome();
+  setView(flowOn, false);
   paintCooldown();
 })();
