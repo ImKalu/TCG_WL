@@ -54,7 +54,8 @@ cards/personnage/17-nom-de-la-carte.jpg
 ```
 
 * **La catégorie** est le nom du sous-dossier, capitalisé pour l'affichage.
-  Les trois dossiers existants sont `personnage/`, `objet/` et `dresseur/`.
+  Les dossiers existants sont `personnage/`, `dresseur/`, `lieu/` et
+  `objet/`.
   **Créer un nouveau sous-dossier ajoute une entrée au menu de tri**, sans
   toucher au code. Changer une carte de catégorie, c'est déplacer son fichier.
 * Une image posée directement dans `cards/` reste valable : elle n'a pas de
