@@ -96,14 +96,12 @@ layout: null
 <body data-back="{{ back_url }}">
 
 <header class="masthead">
-  <svg class="lotus" viewBox="0 0 64 40" aria-hidden="true" focusable="false">
-    <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M32 37C32 37 24 30 24 20 24 12 32 4 32 4s8 8 8 16c0 10-8 17-8 17z"/>
-      <path d="M32 37c0 0-10-2-15-9-4-6-3-14-3-14s8 1 13 7c4 5 5 12 5 16z"/>
-      <path d="M32 37c0 0 10-2 15-9 4-6 3-14 3-14s-8 1-13 7c-4 5-5 12-5 16z"/>
-      <path d="M32 37c0 0-13 1-19-4M32 37c0 0 13 1 19-4"/>
-    </g>
-  </svg>
+  {%- comment -%}
+    Toutes les déclinaisons du logo sortent de assets/logo.png, par
+    tools/icones.py. Changer le logo, c'est remplacer ce seul fichier.
+  {%- endcomment -%}
+  <img class="lotus" src="{{ '/assets/logo-header.png' | relative_url }}" alt=""
+       width="288" height="240" decoding="async">
   <h1>The&nbsp;White&nbsp;Lotus</h1>
   <p class="kicker">Trading Card Game</p>
   <div class="rule" role="presentation"><span></span><i>&#10022;</i><span></span></div>

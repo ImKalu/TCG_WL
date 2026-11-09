@@ -44,11 +44,15 @@ body.is-locked{ overflow:hidden; }
   padding:calc(34px + env(safe-area-inset-top)) 20px 26px;
 }
 
+/* Le logo est une image détourée : le doré lui appartient, mais on garde
+   le halo qui l'accrochait au fond. Elle est servie à trois fois sa taille
+   d'affichage pour rester nette sur un écran de téléphone.            */
 .lotus{
-  width:54px; height:34px;
-  color:var(--or);
+  display:block;
+  width:96px; height:auto;
+  margin:0 auto;
   opacity:.95;
-  filter:drop-shadow(0 0 10px rgba(212,175,55,.35));
+  filter:drop-shadow(0 0 12px rgba(212,175,55,.3));
 }
 
 .masthead h1{

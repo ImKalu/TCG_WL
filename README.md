@@ -102,6 +102,20 @@ cards/personnage/17-nom-de-la-carte.jpg
 
 Poussez sur `main` : GitHub Pages reconstruit le site tout seul en ~1 minute.
 
+### Changer le logo
+
+Le lotus n'existe qu'à un seul endroit : `assets/logo.png`, un PNG détouré
+sur fond transparent. Remplacez-le, relancez le script, et toutes les
+déclinaisons suivent — l'en-tête, l'onglet, l'icône iPhone et les trois
+icônes Android :
+
+```bash
+python3 tools/icones.py
+```
+
+La vignette WhatsApp (`assets/og.jpg`) est à part : c'est une composition
+avec le titre et des cartes, elle ne se regénère pas automatiquement.
+
 ### Poids des images
 
 Les cartes sont servies telles quelles, en chargement différé. Visez environ
@@ -121,7 +135,9 @@ distante : une feuille de style et un fichier JavaScript, tous deux locaux.
 | `assets/css/style.css` | Mise en page, retournement de la carte |
 | `assets/js/app.js` | Collection, boosters, plein écran, gestes, affichages |
 | `manifest.webmanifest` | Installation sur l'écran d'accueil |
-| `assets/icon-*.png` | Icônes de l'application (lotus doré) |
+| `assets/logo.png` | **Le logo, source unique** : tout le reste en découle |
+| `tools/icones.py` | Regénère l'en-tête, le favicon et les icônes |
+| `assets/icon-*.png` | Icônes de l'application, fabriquées par ce script |
 | `assets/og.jpg` | Vignette affichée par WhatsApp |
 | `_config.yml` | Titre, description, URL du site, dos des cartes |
 

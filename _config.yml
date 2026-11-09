@@ -15,6 +15,7 @@ back: dos
 exclude:
   - README.md
   - preview.html
+  - tools
   - Gemfile
   - Gemfile.lock
   - vendor
