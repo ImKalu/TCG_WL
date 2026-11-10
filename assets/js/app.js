@@ -19,6 +19,7 @@
   var OLD_KEY   = 'wl-tcg-collection-v1';
   var NEXT_KEY  = 'wl-tcg-next-booster';
   var VIEW_KEY  = 'wl-tcg-view';
+  var REV_KEY   = 'wl-tcg-rev';
   var LOCKED    = '???';                // nom d'une case pas encore gagnée
   var RATIO = 1000 / 1400;
 
@@ -304,6 +305,7 @@
   function closeViewer(fromPop) {
     if (!open) return;
     open = false;
+    if (pendingReload) setTimeout(reloadNow, 320);
     viewer.classList.remove('is-open');
     document.body.classList.remove('is-locked');
     paintHome();
@@ -610,10 +612,61 @@
 
   if (boosterBtn) boosterBtn.addEventListener('click', openBooster);
 
-  // Au retour sur l'onglet, le décompte peut avoir expiré en coulisse.
+  // Au retour sur l'onglet, le décompte peut avoir expiré en coulisse,
+  // et le site avoir été reconstruit entre-temps.
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden) paintCooldown();
+    if (document.hidden) return;
+    paintCooldown();
+    checkRev();
   });
+
+  /* ── Page périmée ────────────────────────────────────────────── */
+  /* La liste des cartes est écrite dans la page au moment de la
+     construction. Une page gardée en mémoire — ce que fait iOS avec une
+     application posée sur l'écran d'accueil, qu'il reprend au lieu de la
+     recharger — continue donc d'afficher l'ancienne collection, parfois
+     des jours. La page interroge un fichier d'une ligne portant la date
+     de construction, hors de tout cache, et se recharge si elle a
+     vieilli. Jamais pendant un booster : le rechargement attend la
+     fermeture du lecteur.                                            */
+
+  var REV = document.body.dataset.rev || '';
+  var REV_URL = document.body.dataset.revurl || '';
+  var revSeenAt = 0;
+  var pendingReload = false;
+
+  function reloadNow() {
+    pendingReload = false;
+    try { location.reload(); } catch (e) {}
+  }
+
+  function checkRev() {
+    if (!REV || !REV_URL || !window.fetch) return;
+    var now = Date.now();
+    if (now - revSeenAt < 30000) return;        // au plus une fois par 30 s
+    revSeenAt = now;
+
+    // « no-store » n'est pas honoré partout : le paramètre garantit que
+    // la requête parte vraiment jusqu'au serveur.
+    fetch(REV_URL + '?t=' + now, { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.text() : null; })
+      .then(function (t) {
+        if (t == null) return;
+        var live = t.replace(/\s+/g, '');
+        if (!live || live === REV) return;
+
+        // Si un rechargement n'a pas suffi à rajeunir la page, on
+        // n'insiste pas : mieux vaut une page périmée qu'une boucle.
+        var deja = null;
+        try { deja = window.sessionStorage.getItem(REV_KEY); } catch (e) {}
+        if (deja === live) return;
+        try { window.sessionStorage.setItem(REV_KEY, live); } catch (e) {}
+
+        if (open) { pendingReload = true; return; }
+        reloadNow();
+      })
+      .catch(function () {});
+  }
 
   /* ── Deux affichages : grille et carrousel ───────────────────── */
   /* Les deux vues partagent les mêmes éléments : basculer ne change
@@ -779,4 +832,5 @@
   paintHome();
   setView(flowOn, false);
   paintCooldown();
+  checkRev();
 })();

@@ -93,7 +93,13 @@ layout: null
 <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}?v={{ rev }}">
 </head>
 
-<body data-back="{{ back_url }}">
+{%- comment -%}
+  data-rev est la date de construction du site, la même que celle qui
+  marque les feuilles et les scripts. Le script la compare à rev.txt pour
+  savoir si la page qu'il habite a vieilli — cas courant d'une application
+  posée sur un écran d'accueil, qu'iOS reprend de mémoire sans recharger.
+{%- endcomment -%}
+<body data-back="{{ back_url }}" data-rev="{{ rev }}" data-revurl="{{ '/rev.txt' | relative_url }}">
 
 <header class="masthead">
   {%- comment -%}

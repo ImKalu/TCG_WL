@@ -69,6 +69,24 @@ réglé, servirait une vieille version du site pendant des jours après une mise
 à jour. L'installation ne change donc rien au chargement, seulement la façon
 dont le site s'ouvre.
 
+### La page se recharge quand elle a vieilli
+
+La liste des cartes est écrite dans la page au moment de la construction. Or
+iOS ne recharge pas une application posée sur l'écran d'accueil : il reprend
+la page gardée en mémoire. Sans rien faire, une nouvelle carte pouvait donc
+rester invisible dans l'application alors qu'elle était en ligne.
+
+Le site publie sa date de construction dans `rev.txt`, un fichier d'une
+ligne. La page porte la même date dans `data-rev`, les compare au chargement
+et à chaque retour sur l'onglet, et se recharge si elles diffèrent. Trois
+garde-fous :
+
+* la requête part avec `no-store` **et** un paramètre aléatoire, pour ne pas
+  lire elle-même une réponse périmée ;
+* au plus une vérification toutes les 30 secondes ;
+* jamais pendant un booster : le rechargement attend la fermeture du lecteur,
+  et un rechargement qui n'a pas rajeuni la page n'est pas retenté.
+
 ## Ajouter une carte
 
 Déposez l'image dans le sous-dossier de sa catégorie. C'est tout : le site la
